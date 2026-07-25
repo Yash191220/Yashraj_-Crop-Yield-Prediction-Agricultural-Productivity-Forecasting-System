@@ -6,9 +6,7 @@
 
 ## 🎨 1. UI Wireframes & Layout Architecture
 
-![YieldSense AI Dashboard Wireframe](/Users/yashraj_1920/.gemini/antigravity-ide/brain/d150a88a-e13f-4cd1-a894-ff846f7356c1/yieldsense_ui_wireframe_1785003147100.png)
-
-Full UI Wireframes & User Journey documentation: [ui_wireframes_and_workflows.md](file:///Users/yashraj_1920/.gemini/antigravity-ide/brain/d150a88a-e13f-4cd1-a894-ff846f7356c1/ui_wireframes_and_workflows.md).
+![YieldSense AI Dashboard Wireframe](./docs/assets/yieldsense_ui_wireframe.png)
 
 ---
 
