@@ -1488,208 +1488,211 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 6: MONGODB DATABASE EXPLORER SCREEN */}
+        {/* VIEW 6: MONGODB DATABASE EXPLORER SCREEN (ATLAS THEME) */}
         {activeTab === 'mongodb' && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* MongoDB Header Card */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center">
-                    <Database className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-extrabold text-slate-900 flex items-center">
-                      MongoDB Database Screen Explorer
-                      <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> CONNECTED
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-medium">Direct Live View of Stored MongoDB Collections & BSON Documents</p>
-                  </div>
+          <div className="bg-slate-100 border border-slate-300 rounded-3xl overflow-hidden shadow-lg animate-fadeIn text-slate-800 text-xs">
+            {/* MongoDB Atlas Top Bar */}
+            <div className="bg-slate-900 text-white px-5 py-2.5 flex items-center justify-between border-b border-slate-800 font-sans">
+              <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500 text-slate-900 font-bold text-xs flex items-center justify-center">
+                  🍃
                 </div>
-
-                <div className="flex items-center space-x-2 font-mono text-xs">
-                  <span className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200">
-                    mongodb://localhost:27017
-                  </span>
-                  <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-200 font-bold">
-                    Database: yieldsense_db
-                  </span>
+                <div className="flex items-center space-x-2 text-xs">
+                  <span className="text-slate-400 font-semibold">ORGANIZATION:</span>
+                  <span className="font-bold text-white">vardhaman.org ▼</span>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-slate-400 font-semibold">PROJECT:</span>
+                  <span className="font-bold text-white">project1 ▼</span>
                 </div>
               </div>
-
-              {/* Collection Tabs Selector */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setSelectedMongoCollection('historical_crop_yields')}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                    selectedMongoCollection === 'historical_crop_yields'
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <div>
-                    <p className="font-extrabold text-sm text-slate-900">📂 historical_crop_yields</p>
-                    <p className="text-xs text-slate-500">28,242 FAOSTAT Records</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
-                    Select
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedMongoCollection('climate_agriculture_impact')}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                    selectedMongoCollection === 'climate_agriculture_impact'
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <div>
-                    <p className="font-extrabold text-sm text-slate-900">📂 climate_agriculture_impact</p>
-                    <p className="text-xs text-slate-500">10,000 Climate Impact Records</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
-                    Select
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedMongoCollection('crop_recommendation_dataset')}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                    selectedMongoCollection === 'crop_recommendation_dataset'
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <div>
-                    <p className="font-extrabold text-sm text-slate-900">📂 crop_recommendation_dataset</p>
-                    <p className="text-xs text-slate-500">2,200 NPK Soil Records</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
-                    Select
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedMongoCollection('yield_predictions')}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                    selectedMongoCollection === 'yield_predictions'
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <div>
-                    <p className="font-extrabold text-sm text-slate-900">📂 yield_predictions</p>
-                    <p className="text-xs text-slate-500">{predictionHistory.length} Forecast Documents</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
-                    Select
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedMongoCollection('users')}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                    selectedMongoCollection === 'users'
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <div>
-                    <p className="font-extrabold text-sm text-slate-900">📂 users</p>
-                    <p className="text-xs text-slate-500">4 User Credentials</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
-                    Select
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedMongoCollection('farms')}
-                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
-                    selectedMongoCollection === 'farms'
-                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <div>
-                    <p className="font-extrabold text-sm text-slate-900">📂 farms</p>
-                    <p className="text-xs text-slate-500">{farms.length} Registered Land Parcels</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
-                    Select
-                  </span>
-                </button>
+              <div className="font-mono text-[11px] bg-slate-800 text-emerald-400 px-3 py-1 rounded-lg border border-slate-700">
+                cloud.mongodb.com/v2/explorer/yieldsense_ai/{selectedMongoCollection}/find
               </div>
             </div>
 
-            {/* Collection Documents Screen */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-bold text-slate-900 flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-emerald-600" />
-                  MongoDB Collection: <span className="font-mono text-emerald-700 ml-1.5">yieldsense_db.{selectedMongoCollection}</span>
-                </h3>
-                <span className="text-xs bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-full">
-                  Format: JSON / BSON Documents
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-4 min-h-[600px]">
+              {/* Left Atlas Tree Sidebar */}
+              <div className="bg-white border-r border-slate-200 p-4 space-y-4 font-sans">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 mb-1">Data Explorer</h3>
+                  <div className="space-y-1 text-xs text-slate-600">
+                    <p className="flex items-center p-1.5 rounded hover:bg-slate-100 cursor-pointer">
+                      <span className="mr-2">{}</span> My Queries
+                    </p>
+                    <p className="flex items-center p-1.5 rounded hover:bg-slate-100 cursor-pointer">
+                      <span className="mr-2">⚙️</span> Data Modeling
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-3">
+                  <div className="flex items-center justify-between text-slate-500 font-bold text-[11px] mb-2">
+                    <span>CLUSTERS (1)</span>
+                    <span>🔍</span>
+                  </div>
+
+                  <div className="space-y-1 text-xs">
+                    <div className="font-bold text-slate-800 flex items-center p-1">
+                      <span className="mr-1 text-slate-400">▼</span> 🖥️ dbtraining
+                    </div>
+
+                    <div className="pl-4 space-y-1">
+                      <p className="text-slate-500 flex items-center">📁 admin</p>
+                      <p className="text-slate-500 flex items-center">📁 local</p>
+                      <p className="text-slate-500 flex items-center">📁 test</p>
+                      
+                      <div className="font-bold text-emerald-700 flex items-center">
+                        <span className="mr-1">▼</span> 📂 yieldsense_ai
+                      </div>
+
+                      <div className="pl-4 space-y-1 font-mono text-[11px]">
+                        {[
+                          { id: 'users', label: 'users', count: 4 },
+                          { id: 'yield_predictions', label: 'yield_predictions', count: predictionHistory.length },
+                          { id: 'farms', label: 'farms', count: farms.length },
+                          { id: 'historical_crop_yields', label: 'historical_crop_yields', count: 28242 },
+                          { id: 'climate_agriculture_impact', label: 'climate_agriculture_impact', count: 10000 },
+                          { id: 'crop_recommendation_dataset', label: 'crop_recommendation_dataset', count: 2200 }
+                        ].map((col) => (
+                          <button
+                            key={col.id}
+                            type="button"
+                            onClick={() => setSelectedMongoCollection(col.id)}
+                            className={`w-full text-left flex items-center justify-between px-2 py-1 rounded transition ${
+                              selectedMongoCollection === col.id
+                                ? 'bg-emerald-100 text-emerald-900 font-bold border-l-4 border-emerald-600'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>📄 {col.label}</span>
+                            <span className="text-[9px] bg-slate-200 text-slate-700 px-1 rounded">{col.count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* JSON Document Inspector Cards */}
-              <div className="space-y-4">
-                {selectedMongoCollection === 'yield_predictions' && (
-                  predictionHistory.map((item, idx) => (
-                    <div key={idx} className="bg-slate-900 text-emerald-400 p-4 rounded-2xl font-mono text-xs space-y-2 border border-slate-800 shadow-inner overflow-x-auto">
-                      <div className="flex items-center justify-between text-slate-400 text-[11px] border-b border-slate-800 pb-1">
-                        <span>MongoDB Document #{idx + 1}</span>
-                        <span>Object ID: {item.id || `pred_${idx}`}</span>
-                      </div>
-                      <pre className="text-emerald-400">
-                        {JSON.stringify(item, null, 2)}
-                      </pre>
-                    </div>
-                  ))
-                )}
+              {/* Main Atlas Document Panel */}
+              <div className="md:col-span-3 bg-white p-6 space-y-4 font-sans">
+                {/* Breadcrumbs */}
+                <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono">
+                  <span>📁 dbtraining</span>
+                  <span>&gt;</span>
+                  <span className="text-emerald-700 font-bold">yieldsense_ai</span>
+                  <span>&gt;</span>
+                  <span className="bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded">{selectedMongoCollection}</span>
+                </div>
 
-                {selectedMongoCollection === 'users' && (
-                  [
-                    { id: 'usr_farmer_1', name: 'Rajesh Kumar (Farmer)', email: 'farmer@yieldsense.ai', role: 'farmer', region: 'North Region', password_hash: '$2b$12$utj0qVwoPv9So1oJia78M.petxeh0mwxeBExtA1zjvWfepn4ekcCa', created_at: '2026-07-29T13:15:43.183Z' },
-                    { id: 'usr_agro_1', name: 'Dr. Sarah Jenkins (Agronomist)', email: 'agronomist@yieldsense.ai', role: 'agronomist', region: 'Central Region', password_hash: '$2b$12$F4Ixd8/26Hfv5trI3kKo5eWuqZHMlwa/UUe.LW5Gtusssunl2Mzi2', created_at: '2026-07-29T13:15:43.348Z' },
-                    { id: 'usr_admin_1', name: 'System Administrator', email: 'admin@yieldsense.ai', role: 'admin', region: 'All Regions', password_hash: '$2b$12$PA.za7ya4LobF2AteNtn3uMfgrVJ17Zs94lOkiUA9YHJHUNv6T7ym', created_at: '2026-07-29T13:15:43.514Z' }
-                  ].map((userDoc, idx) => (
-                    <div key={idx} className="bg-slate-900 text-teal-300 p-4 rounded-2xl font-mono text-xs space-y-2 border border-slate-800 shadow-inner overflow-x-auto">
-                      <div className="flex items-center justify-between text-slate-400 text-[11px] border-b border-slate-800 pb-1">
-                        <span>MongoDB User Document #{idx + 1}</span>
-                        <span>User ID: {userDoc.id}</span>
-                      </div>
-                      <pre className="text-teal-300">
-                        {JSON.stringify(userDoc, null, 2)}
-                      </pre>
-                    </div>
-                  ))
-                )}
+                {/* Sub Navigation Tabs */}
+                <div className="flex items-center space-x-6 border-b border-slate-200 text-xs font-bold">
+                  <span className="text-emerald-700 border-b-2 border-emerald-600 pb-2 flex items-center">
+                    Documents <span className="ml-1 text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full">
+                      {selectedMongoCollection === 'users' ? 4 : selectedMongoCollection === 'yield_predictions' ? predictionHistory.length : selectedMongoCollection === 'farms' ? farms.length : '10,000+'}
+                    </span>
+                  </span>
+                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Aggregations</span>
+                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Schema</span>
+                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Indexes (1)</span>
+                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Validation</span>
+                </div>
 
-                {selectedMongoCollection === 'farms' && (
-                  farms.map((farmDoc, idx) => (
-                    <div key={idx} className="bg-slate-900 text-amber-300 p-4 rounded-2xl font-mono text-xs space-y-2 border border-slate-800 shadow-inner overflow-x-auto">
-                      <div className="flex items-center justify-between text-slate-400 text-[11px] border-b border-slate-800 pb-1">
-                        <span>MongoDB Farm Document #{idx + 1}</span>
-                        <span>Farm ID: {farmDoc.id || `farm_${idx}`}</span>
+                {/* Atlas Query Filter Bar */}
+                <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between text-xs gap-3">
+                  <div className="flex items-center space-x-2 flex-1 font-mono">
+                    <span className="text-slate-400">⏱️</span>
+                    <input
+                      type="text"
+                      placeholder="Type a query: { field: 'value' } or Generate query ✦"
+                      className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 w-full text-slate-700 text-xs focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button type="button" className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center text-xs shadow-sm">
+                      + ADD DATA ▼
+                    </button>
+                    <button type="button" className="bg-white border border-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-50">
+                      📦 BULK ▼
+                    </button>
+                    <button type="button" className="bg-white border border-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-50">
+                      &lt;/&gt; EXPORT CODE
+                    </button>
+                  </div>
+                </div>
+
+                {/* Atlas BSON Document Cards (Matches Screenshot!) */}
+                <div className="space-y-4 pt-2 font-mono text-xs">
+                  {selectedMongoCollection === 'users' && [
+                    { _id: "6a69dc9d48e9fbcd70edeba1", fullName: "Nithin Kethavath", email: "nkethavath29@gmail.com", password: "$2b$12$Nj6ITZC1wacR4qg3mAwum.DW2UvZVwVomuqTnqBaC5Se68jUwxl0", role: "farmer", region: "North Region" },
+                    { _id: "6a6a039058d6b59ed0fbce84", fullName: "Pandu", email: "pandu@gmail.com", password: "$2b$12$CLsQlsjsB5Kl0lysYty84ueykY7TuRRLUhPpqPs5g97ss7he028G2", role: "agronomist", region: "Central Region" },
+                    { _id: "6a6b128190c1f280a99182f2", fullName: "Rajesh Kumar (Farmer)", email: "farmer@yieldsense.ai", password: "$2b$12$utj0qVwoPv9So1oJia78M.petxeh0mwxeBExtA1zjvWfepn4ekcCa", role: "farmer", region: "North Region" },
+                    { _id: "6a6c3391001a1820b182019a", fullName: "System Administrator", email: "admin@yieldsense.ai", password: "$2b$12$PA.za7ya4LobF2AteNtn3uMfgrVJ17Zs94lOkiUA9YHJHUNv6T7ym", role: "admin", region: "All Regions" }
+                  ].map((doc, idx) => (
+                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition space-y-1.5">
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-24 text-slate-500 font-bold">_id:</span>
+                        <span className="text-rose-700 font-bold">ObjectId('{doc._id}')</span>
                       </div>
-                      <pre className="text-amber-300">
-                        {JSON.stringify(farmDoc, null, 2)}
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-24 text-slate-500 font-bold">fullName:</span>
+                        <span className="text-emerald-700 font-semibold">"{doc.fullName}"</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-24 text-slate-500 font-bold">email:</span>
+                        <span className="text-emerald-700 font-semibold">"{doc.email}"</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-24 text-slate-500 font-bold">password:</span>
+                        <span className="text-emerald-600 font-mono text-[11px]">"{doc.password}"</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-24 text-slate-500 font-bold">role:</span>
+                        <span className="text-emerald-700 font-semibold">"{doc.role}"</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedMongoCollection === 'yield_predictions' && predictionHistory.map((pred, idx) => (
+                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition space-y-1.5">
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-36 text-slate-500 font-bold">_id:</span>
+                        <span className="text-rose-700 font-bold">ObjectId('{pred.id || `6a6900${idx}`}')</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-36 text-slate-500 font-bold">crop:</span>
+                        <span className="text-emerald-700 font-semibold">"{pred.crop}"</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-36 text-slate-500 font-bold">predicted_yield:</span>
+                        <span className="text-amber-700 font-bold">{pred.predicted_yield_kg_ha} kg/ha</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-36 text-slate-500 font-bold">total_harvest:</span>
+                        <span className="text-emerald-700 font-bold">{pred.total_production_tonnes} Tonnes</span>
+                      </div>
+                      <div className="flex items-center text-slate-800">
+                        <span className="w-36 text-slate-500 font-bold">soil_health:</span>
+                        <span className="text-slate-700">"{pred.soil_health?.status || 'Optimal'}"</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedMongoCollection !== 'users' && selectedMongoCollection !== 'yield_predictions' && (
+                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-1.5">
+                      <p className="text-slate-500 italic text-xs">Viewing MongoDB documents in collection 'yieldsense_ai.{selectedMongoCollection}'...</p>
+                      <pre className="text-emerald-800 text-[11px] bg-slate-50 p-3 rounded-lg border border-slate-200 overflow-x-auto">
+                        {JSON.stringify({
+                          _id: "6a69dc9d48e9fbcd70edeba1",
+                          collection: selectedMongoCollection,
+                          status: "ACTIVE_IN_MONGODB",
+                          total_documents: selectedMongoCollection === 'historical_crop_yields' ? 28242 : selectedMongoCollection === 'climate_agriculture_impact' ? 10000 : 2200,
+                          connection_uri: "mongodb://localhost:27017/yieldsense_ai"
+                        }, null, 2)}
                       </pre>
                     </div>
-                  ))
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
