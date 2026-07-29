@@ -1,8 +1,16 @@
+import sys
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
 
-from routes import auth, user, prediction, weather, soil, recommendation
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+load_dotenv(os.path.join(backend_dir, ".env"))
+
+from routes import auth, user, prediction, weather, soil, recommendation, farm
 
 app = FastAPI(
     title="YieldSense AI Backend API",
@@ -23,6 +31,7 @@ app.add_middleware(
 # Register API Routers
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(farm.router)
 app.include_router(prediction.router)
 app.include_router(weather.router)
 app.include_router(soil.router)

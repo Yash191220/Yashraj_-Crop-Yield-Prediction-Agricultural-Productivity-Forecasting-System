@@ -2,6 +2,7 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
+from preprocessing import clean_dataset
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.pkl')
 
@@ -21,15 +22,22 @@ def predict_yield(input_data: dict) -> dict:
     preprocessor = bundle['preprocessor']
     rf_model = bundle['rf_model']
     boost_model = bundle['boost_model']
+    et_model = bundle.get('et_model')
     
     df_input = pd.DataFrame([input_data])
+    df_input = clean_dataset(df_input)
     X_processed = preprocessor.transform(df_input)
 
     rf_pred = rf_model.predict(X_processed)[0]
     boost_pred = boost_model.predict(X_processed)[0]
     
-    # Ensemble prediction
-    predicted_yield = max(100.0, float(0.5 * rf_pred + 0.5 * boost_pred))
+    if et_model is not None:
+        et_pred = et_model.predict(X_processed)[0]
+        predicted_yield = float(0.40 * rf_pred + 0.40 * et_pred + 0.20 * boost_pred)
+    else:
+        predicted_yield = float(0.50 * rf_pred + 0.50 * boost_pred)
+
+    predicted_yield = max(100.0, predicted_yield)
     area = float(input_data.get('area_hectares', 1.0))
     total_production_tonnes = round((predicted_yield * area) / 1000.0, 2)
     
