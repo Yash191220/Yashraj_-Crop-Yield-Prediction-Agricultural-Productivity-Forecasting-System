@@ -1523,6 +1523,60 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
                   type="button"
+                  onClick={() => setSelectedMongoCollection('historical_crop_yields')}
+                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
+                    selectedMongoCollection === 'historical_crop_yields'
+                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-900">📂 historical_crop_yields</p>
+                    <p className="text-xs text-slate-500">28,242 FAOSTAT Records</p>
+                  </div>
+                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
+                    Select
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedMongoCollection('climate_agriculture_impact')}
+                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
+                    selectedMongoCollection === 'climate_agriculture_impact'
+                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-900">📂 climate_agriculture_impact</p>
+                    <p className="text-xs text-slate-500">10,000 Climate Impact Records</p>
+                  </div>
+                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
+                    Select
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedMongoCollection('crop_recommendation_dataset')}
+                  className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
+                    selectedMongoCollection === 'crop_recommendation_dataset'
+                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-900">📂 crop_recommendation_dataset</p>
+                    <p className="text-xs text-slate-500">2,200 NPK Soil Records</p>
+                  </div>
+                  <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
+                    Select
+                  </span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setSelectedMongoCollection('yield_predictions')}
                   className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
                     selectedMongoCollection === 'yield_predictions'
@@ -1550,7 +1604,7 @@ export default function App() {
                 >
                   <div>
                     <p className="font-extrabold text-sm text-slate-900">📂 users</p>
-                    <p className="text-xs text-slate-500">3 User Auth Credentials</p>
+                    <p className="text-xs text-slate-500">4 User Credentials</p>
                   </div>
                   <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border text-emerald-700">
                     Select
