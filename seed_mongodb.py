@@ -1,11 +1,48 @@
 from pymongo import MongoClient
 from datetime import datetime
+import bcrypt
+
+def hash_pwd(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def seed():
     try:
         client = MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=2000)
         db = client['yieldsense_db']
         
+        # Seed Users
+        if db.users.count_documents({}) == 0:
+            db.users.insert_many([
+                {
+                    "id": "usr_farmer_1",
+                    "name": "Rajesh Kumar (Farmer)",
+                    "email": "farmer@yieldsense.ai",
+                    "role": "farmer",
+                    "region": "North Region",
+                    "password_hash": hash_pwd("farmer123"),
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": "usr_agro_1",
+                    "name": "Dr. Sarah Jenkins (Agronomist)",
+                    "email": "agronomist@yieldsense.ai",
+                    "role": "agronomist",
+                    "region": "Central Region",
+                    "password_hash": hash_pwd("agro123"),
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "id": "usr_admin_1",
+                    "name": "System Administrator",
+                    "email": "admin@yieldsense.ai",
+                    "role": "admin",
+                    "region": "All Regions",
+                    "password_hash": hash_pwd("admin123"),
+                    "created_at": datetime.utcnow()
+                }
+            ])
+            print("Successfully seeded users collection.")
+
         # Seed Predictions
         if db.yield_predictions.count_documents({}) == 0:
             db.yield_predictions.insert_many([

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models.user import UserRegister, UserLogin, TokenResponse, UserResponse
+from database.db import get_database
 import jwt
 import bcrypt
 from datetime import datetime, timedelta
@@ -12,7 +13,6 @@ security = HTTPBearer(auto_error=False)
 SECRET_KEY = os.getenv("JWT_SECRET", "yieldsense_secret_key_2026_super_secure")
 ALGORITHM = "HS256"
 
-# In-memory user database with seed accounts
 def hash_pwd(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -71,9 +71,20 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None or email not in USER_DB:
+        if email is None:
             return default_user
-        return USER_DB[email]
+        
+        # Check MongoDB first
+        db = get_database()
+        if db is not None:
+            db_user = db.users.find_one({"email": email})
+            if db_user:
+                return db_user
+                
+        if email in USER_DB:
+            return USER_DB[email]
+            
+        return default_user
     except jwt.PyJWTError:
         return default_user
 
@@ -89,11 +100,19 @@ def require_roles(allowed_roles: list[str]):
 
 @router.post("/register", response_model=TokenResponse)
 def register_user(user: UserRegister):
+    db = get_database()
+    
+    # Check if user exists in MongoDB or local DB
+    if db is not None:
+        existing = db.users.find_one({"email": user.email})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+            
     if user.email in USER_DB:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_record = {
-        "id": f"usr_{len(USER_DB) + 1}",
+        "id": f"usr_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
         "name": user.name,
         "email": user.email,
         "role": user.role if user.role in ["farmer", "agronomist", "researcher", "admin"] else "farmer",
@@ -101,6 +120,15 @@ def register_user(user: UserRegister):
         "password_hash": hash_pwd(user.password),
         "created_at": datetime.utcnow()
     }
+    
+    # Save to MongoDB
+    if db is not None:
+        try:
+            db.users.insert_one(user_record.copy())
+            print(f"User {user.email} saved to MongoDB yieldsense_db.users collection.")
+        except Exception as e:
+            print(f"MongoDB user save error: {e}")
+            
     USER_DB[user.email] = user_record
     
     token = create_access_token({"sub": user.email, "role": user_record["role"]})
@@ -116,10 +144,19 @@ def register_user(user: UserRegister):
 
 @router.post("/login", response_model=TokenResponse)
 def login_user(credentials: UserLogin):
-    if credentials.email not in USER_DB:
+    db = get_database()
+    user = None
+    
+    # Search MongoDB first
+    if db is not None:
+        user = db.users.find_one({"email": credentials.email})
+        
+    if not user and credentials.email in USER_DB:
+        user = USER_DB[credentials.email]
+        
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    user = USER_DB[credentials.email]
     if not verify_pwd(credentials.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
