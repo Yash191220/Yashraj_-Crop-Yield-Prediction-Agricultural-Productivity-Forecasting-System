@@ -9,9 +9,29 @@ const apiClient = axios.create({
   }
 });
 
-// Interceptor to attach JWT token to every request automatically
+// Cookie Utility Helpers
+export const setCookie = (name, value, days = 7) => {
+  const expires = new Date(Date.now() + days * 86400000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+export const getCookie = (name) => {
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i].trim();
+    if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+  }
+  return null;
+};
+
+export const deleteCookie = (name) => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
+// Interceptor to attach JWT token from Cookies or LocalStorage automatically
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = getCookie('access_token') || localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,6 +45,11 @@ export const loginUser = async (credentials) => {
   const response = await apiClient.post('/auth/login', credentials);
   if (response.data.access_token) {
     localStorage.setItem('access_token', response.data.access_token);
+    setCookie('access_token', response.data.access_token);
+    if (response.data.user) {
+      setCookie('user_role', response.data.user.role);
+      setCookie('user_email', response.data.user.email);
+    }
   }
   return response.data;
 };
@@ -33,6 +58,24 @@ export const registerUser = async (userData) => {
   const response = await apiClient.post('/auth/register', userData);
   if (response.data.access_token) {
     localStorage.setItem('access_token', response.data.access_token);
+    setCookie('access_token', response.data.access_token);
+    if (response.data.user) {
+      setCookie('user_role', response.data.user.role);
+      setCookie('user_email', response.data.user.email);
+    }
+  }
+  return response.data;
+};
+
+export const loginWithGoogle = async (googleData) => {
+  const response = await apiClient.post('/auth/google', googleData);
+  if (response.data.access_token) {
+    localStorage.setItem('access_token', response.data.access_token);
+    setCookie('access_token', response.data.access_token);
+    if (response.data.user) {
+      setCookie('user_role', response.data.user.role);
+      setCookie('user_email', response.data.user.email);
+    }
   }
   return response.data;
 };
@@ -44,6 +87,9 @@ export const getCurrentUserProfile = async () => {
 
 export const logoutUser = () => {
   localStorage.removeItem('access_token');
+  deleteCookie('access_token');
+  deleteCookie('user_role');
+  deleteCookie('user_email');
 };
 
 // Prediction APIs

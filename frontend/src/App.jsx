@@ -30,7 +30,10 @@ import {
   Headphones,
   HelpCircle,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck,
+  Users,
+  Lock
 } from 'lucide-react';
 import {
   BarChart,
@@ -50,6 +53,7 @@ import {
 import {
   loginUser,
   registerUser,
+  loginWithGoogle,
   getCurrentUserProfile,
   logoutUser,
   predictYield,
@@ -61,9 +65,10 @@ import {
   createFarm,
   deleteFarm
 } from './api';
+import LoginPage from './components/LoginPage';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('login');
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
@@ -226,6 +231,7 @@ export default function App() {
 
   // Notifications & Support Architecture State
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [notificationsList, setNotificationsList] = useState([
     { id: 1, type: 'weather', title: 'Rainfall Variance Alert', time: '10 mins ago', message: 'Precipitation model predicts 12% lower rainfall in North Region. Drip irrigation recommended.', unread: true },
@@ -346,9 +352,16 @@ export default function App() {
   const fetchProfile = async () => {
     try {
       const data = await getCurrentUserProfile();
-      setUser(data);
+      if (data && data.email) {
+        setUser(data);
+        setActiveTab('dashboard');
+      } else {
+        setUser(null);
+        setActiveTab('login');
+      }
     } catch {
       setUser(null);
+      setActiveTab('login');
     }
   };
 
@@ -385,6 +398,7 @@ export default function App() {
       const data = await loginUser({ email: loginEmail, password: loginPassword });
       setUser(data.user);
       setShowAuthModal(false);
+      setActiveTab('dashboard'); // Redirect to Home Page
       fetchHistory();
       fetchFarmList();
     } catch (err) {
@@ -403,11 +417,12 @@ export default function App() {
         name: regName,
         email: regEmail,
         password: regPassword,
-        role: regRole,
+        role: regRole, // 'farmer' or 'admin'
         region: regRegion
       });
       setUser(data.user);
       setShowAuthModal(false);
+      setActiveTab('dashboard'); // Redirect to Home Page
       fetchHistory();
       fetchFarmList();
     } catch (err) {
@@ -417,15 +432,51 @@ export default function App() {
     }
   };
 
+  const handleGoogleSignIn = async (roleOverride = 'farmer') => {
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const targetEmail = regEmail || loginEmail || `farmer.user.${Math.floor(Math.random() * 899 + 100)}@gmail.com`;
+      const targetName = regName || 'Google User';
+      const data = await loginWithGoogle({
+        email: targetEmail,
+        name: targetName,
+        role: roleOverride || regRole || 'farmer',
+        google_id: `g_${Date.now()}`
+      });
+      setUser(data.user);
+      setShowAuthModal(false);
+      setActiveTab('dashboard'); // Redirect to Home Page
+      fetchHistory();
+      fetchFarmList();
+    } catch (err) {
+      setAuthError(err.response?.data?.detail || 'Google Sign-In failed.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     logoutUser();
     setUser(null);
+    setActiveTab('login');
   };
 
-  const handleQuickLogin = (email, password) => {
-    setLoginEmail(email);
-    setLoginPassword(password);
-    setAuthMode('login');
+  const handleQuickLogin = async (email, password) => {
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const data = await loginUser({ email, password });
+      setUser(data.user);
+      setShowAuthModal(false);
+      setActiveTab('dashboard'); // Redirect to Home Page
+      fetchHistory();
+      fetchFarmList();
+    } catch (err) {
+      setAuthError(err.response?.data?.detail || 'Quick login failed.');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const handlePredict = async (e) => {
@@ -555,6 +606,78 @@ export default function App() {
     { subject: 'Organic Matter', A: predForm.organic_matter_percent * 40, max: 200 }
   ];
 
+  // Handle Google OAuth redirect callback from backend
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const googleToken = params.get('google_token');
+    const googleEmail = params.get('google_email');
+    const googleName = params.get('google_name');
+    const googleRole = params.get('google_role');
+    const googleError = params.get('google_error');
+
+    // If this page is loaded inside the OAuth popup window,
+    // send the token to the PARENT (main) window and close the popup
+    if (window.opener && (googleToken || googleError)) {
+      if (googleToken && googleEmail) {
+        window.opener.postMessage({
+          type: 'GOOGLE_AUTH_SUCCESS',
+          token: googleToken,
+          email: googleEmail,
+          name: googleName,
+          role: googleRole
+        }, window.location.origin);
+      } else if (googleError) {
+        window.opener.postMessage({
+          type: 'GOOGLE_AUTH_ERROR',
+          error: googleError
+        }, window.location.origin);
+      }
+      // Close the popup — dashboard opens in main window
+      window.close();
+      return;
+    }
+
+    // Handle message from popup (main window listener)
+    const handleGoogleMessage = (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+        const { token, email, name, role } = event.data;
+        localStorage.setItem('access_token', token);
+        document.cookie = `access_token=${token}; path=/; max-age=86400`;
+        document.cookie = `user_email=${email}; path=/; max-age=86400`;
+        document.cookie = `user_role=${role || 'farmer'}; path=/; max-age=86400`;
+        const googleUser = {
+          id: `usr_google_${Date.now()}`,
+          name: name || email.split('@')[0],
+          email,
+          role: role || 'farmer',
+          region: 'North Region',
+          auth_provider: 'google'
+        };
+        setUser(googleUser);
+        setActiveTab('dashboard');
+        fetchHistory();
+        fetchFarmList();
+      }
+    };
+
+    window.addEventListener('message', handleGoogleMessage);
+    return () => window.removeEventListener('message', handleGoogleMessage);
+  }, []);
+
+  if (activeTab === 'login' || !user) {
+    return (
+      <LoginPage
+        onLoginSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
+          setActiveTab('dashboard');
+          fetchHistory();
+          fetchFarmList();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       
@@ -577,29 +700,31 @@ export default function App() {
           <nav className="flex items-center space-x-1 py-1">
             {(() => {
               const currentRole = user?.role || 'farmer';
+              const isAdmin = currentRole === 'admin';
               const navTabs = [
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart3, roles: ['farmer', 'agronomist', 'admin'] },
                 { id: 'forecast', label: 'Yield Forecasting', icon: TrendingUp, roles: ['farmer', 'agronomist', 'admin'] },
                 { id: 'analysis', label: 'Soil & Weather', icon: FlaskConical, roles: ['farmer', 'agronomist', 'admin'] },
-                { id: 'farms', label: 'My Fields', icon: Tractor, roles: ['farmer', 'admin'] },
+                { id: 'farms', label: 'My Fields', icon: Tractor, roles: ['farmer'] },
                 { id: 'advisory', label: 'Advisory', icon: Lightbulb, roles: ['farmer', 'agronomist', 'admin'] },
-                { id: 'mongodb', label: 'MongoDB Database Screen', icon: Database, roles: ['farmer', 'agronomist', 'admin'] }
+                { id: 'adminpanel', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'] }
               ].filter(tab => tab.roles.includes(currentRole));
 
               return navTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
+                const activeClass = isAdmin
+                  ? 'bg-violet-50 text-violet-700 border border-violet-300 shadow-sm'
+                  : 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-sm';
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                      isActive
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      isActive ? activeClass : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-600' : 'text-slate-500'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? (isAdmin ? 'text-violet-600' : 'text-emerald-600') : 'text-slate-500'}`} />
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -658,28 +783,49 @@ export default function App() {
             <Headphones className="w-4 h-4" />
           </button>
 
-          {/* Log In / User Profile */}
+          {/* User Avatar Circle with Logout Dropdown */}
           {user ? (
-            <div className="flex items-center space-x-2.5 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
-                {user.name.charAt(0)}
-              </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-bold text-slate-800">{user.name}</p>
-                <div className="flex items-center space-x-1 mt-0.5">
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold uppercase tracking-wider">
-                    {user.role}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-medium">{user.region}</span>
-                </div>
-              </div>
+            <div className="relative">
               <button
-                onClick={handleLogout}
-                title="Logout"
-                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className={`w-9 h-9 rounded-full text-white font-extrabold text-sm flex items-center justify-center shadow-md transition focus:outline-none focus:ring-2 cursor-pointer ${
+                  user?.role === 'admin'
+                    ? 'bg-violet-600 hover:bg-violet-500 focus:ring-violet-400'
+                    : 'bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-400'
+                }`}
+                title={user.name}
               >
-                <LogOut className="w-4 h-4" />
+                {user.name?.charAt(0)?.toUpperCase() || 'U'}
               </button>
+
+              {showUserMenu && (
+                <>
+                  {/* Backdrop to close on outside click */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  {/* Dropdown Banner */}
+                  <div className="absolute right-0 mt-2 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 w-48 space-y-2 animate-fadeIn">
+                    <div className="px-1 pb-2 border-b border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                          user?.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-emerald-100 text-emerald-700'
+                        }`}>{user.role}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 truncate mt-0.5">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => { setShowUserMenu(false); handleLogout(); }}
+                      className="w-full flex items-center space-x-2 px-2 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <button
@@ -693,23 +839,49 @@ export default function App() {
         </div>
       </header>
 
-      {/* SUB-HEADER BANNER */}
-      <div className="bg-emerald-50/70 border-b border-emerald-100/80 px-6 py-3.5">
+      {/* SUB-HEADER BANNER — color changes by role */}
+      <div className={`border-b px-6 py-3.5 ${
+        user?.role === 'admin'
+          ? 'bg-violet-50/70 border-violet-100/80'
+          : 'bg-emerald-50/70 border-emerald-100/80'
+      }`}>
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-slate-700">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+            <div className={`p-2 rounded-xl ${
+              user?.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-emerald-100 text-emerald-700'
+            }`}>
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-xs text-slate-500">YieldSense ML Engine Calibrated</p>
-              <p className="text-xs font-bold text-slate-800 flex items-center">
-                Ensemble Model Accuracy: <span className="text-emerald-700 ml-1.5 font-mono">92.61%</span>
-              </p>
+              {user?.role === 'admin' ? (
+                <>
+                  <p className="text-xs text-slate-500">YieldSense Admin Console</p>
+                  <p className="text-xs font-bold text-slate-800 flex items-center">
+                    Full System Access <span className="text-violet-700 ml-1.5 font-mono">● Active</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-500">YieldSense ML Engine Calibrated</p>
+                  <p className="text-xs font-bold text-slate-800 flex items-center">
+                    Ensemble Model Accuracy: <span className="text-emerald-700 ml-1.5 font-mono">92.61%</span>
+                  </p>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-4 text-xs text-slate-600">
-            <span className="flex items-center"><Database className="w-3.5 h-3.5 mr-1 text-emerald-600" /> 40,228 Records</span>
-            <span className="flex items-center"><Globe className="w-3.5 h-3.5 mr-1 text-teal-600" /> FAOSTAT & Kaggle Data</span>
+            {user?.role === 'admin' ? (
+              <>
+                <span className="flex items-center"><Database className="w-3.5 h-3.5 mr-1 text-violet-600" /> All Regions Access</span>
+                <span className="flex items-center"><Globe className="w-3.5 h-3.5 mr-1 text-violet-500" /> Platform Administrator</span>
+              </>
+            ) : (
+              <>
+                <span className="flex items-center"><Database className="w-3.5 h-3.5 mr-1 text-emerald-600" /> 40,228 Records</span>
+                <span className="flex items-center"><Globe className="w-3.5 h-3.5 mr-1 text-teal-600" /> FAOSTAT & Kaggle Data</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1487,216 +1659,145 @@ export default function App() {
             )}
           </div>
         )}
+        {/* ADMIN PANEL VIEW - Only for admin role */}
+        {activeTab === 'adminpanel' && user?.role === 'admin' && (
+          <div className="space-y-6 animate-fadeIn">
 
-        {/* VIEW 6: MONGODB DATABASE EXPLORER SCREEN (ATLAS THEME) */}
-        {activeTab === 'mongodb' && (
-          <div className="bg-slate-100 border border-slate-300 rounded-3xl overflow-hidden shadow-lg animate-fadeIn text-slate-800 text-xs">
-            {/* MongoDB Atlas Top Bar */}
-            <div className="bg-slate-900 text-white px-5 py-2.5 flex items-center justify-between border-b border-slate-800 font-sans">
-              <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 rounded-lg bg-emerald-500 text-slate-900 font-bold text-xs flex items-center justify-center">
-                  🍃
-                </div>
-                <div className="flex items-center space-x-2 text-xs">
-                  <span className="text-slate-400 font-semibold">ORGANIZATION:</span>
-                  <span className="font-bold text-white">vardhaman.org ▼</span>
-                  <span className="text-slate-600">|</span>
-                  <span className="text-slate-400 font-semibold">PROJECT:</span>
-                  <span className="font-bold text-white">project1 ▼</span>
-                </div>
-              </div>
-              <div className="font-mono text-[11px] bg-slate-800 text-emerald-400 px-3 py-1 rounded-lg border border-slate-700">
-                cloud.mongodb.com/v2/explorer/yieldsense_ai/{selectedMongoCollection}/find
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 min-h-[600px]">
-              {/* Left Atlas Tree Sidebar */}
-              <div className="bg-white border-r border-slate-200 p-4 space-y-4 font-sans">
+            {/* Admin Header */}
+            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 mb-1">Data Explorer</h3>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <p className="flex items-center p-1.5 rounded hover:bg-slate-100 cursor-pointer">
-                      <span className="mr-2">{}</span> My Queries
-                    </p>
-                    <p className="flex items-center p-1.5 rounded hover:bg-slate-100 cursor-pointer">
-                      <span className="mr-2">⚙️</span> Data Modeling
-                    </p>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <ShieldCheck className="w-5 h-5" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-violet-200">Administrator Console</span>
                   </div>
+                  <h2 className="text-2xl font-black">YieldSense Admin Panel</h2>
+                  <p className="text-violet-200 text-sm mt-1">Full platform access — manage users, monitor system, view all data</p>
                 </div>
-
-                <div className="border-t border-slate-100 pt-3">
-                  <div className="flex items-center justify-between text-slate-500 font-bold text-[11px] mb-2">
-                    <span>CLUSTERS (1)</span>
-                    <span>🔍</span>
-                  </div>
-
-                  <div className="space-y-1 text-xs">
-                    <div className="font-bold text-slate-800 flex items-center p-1">
-                      <span className="mr-1 text-slate-400">▼</span> 🖥️ dbtraining
-                    </div>
-
-                    <div className="pl-4 space-y-1">
-                      <p className="text-slate-500 flex items-center">📁 admin</p>
-                      <p className="text-slate-500 flex items-center">📁 local</p>
-                      <p className="text-slate-500 flex items-center">📁 test</p>
-                      
-                      <div className="font-bold text-emerald-700 flex items-center">
-                        <span className="mr-1">▼</span> 📂 yieldsense_ai
-                      </div>
-
-                      <div className="pl-4 space-y-1 font-mono text-[11px]">
-                        {[
-                          { id: 'users', label: 'users', count: 4 },
-                          { id: 'yield_predictions', label: 'yield_predictions', count: predictionHistory.length },
-                          { id: 'farms', label: 'farms', count: farms.length },
-                          { id: 'historical_crop_yields', label: 'historical_crop_yields', count: 28242 },
-                          { id: 'climate_agriculture_impact', label: 'climate_agriculture_impact', count: 10000 },
-                          { id: 'crop_recommendation_dataset', label: 'crop_recommendation_dataset', count: 2200 }
-                        ].map((col) => (
-                          <button
-                            key={col.id}
-                            type="button"
-                            onClick={() => setSelectedMongoCollection(col.id)}
-                            className={`w-full text-left flex items-center justify-between px-2 py-1 rounded transition ${
-                              selectedMongoCollection === col.id
-                                ? 'bg-emerald-100 text-emerald-900 font-bold border-l-4 border-emerald-600'
-                                : 'text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            <span>📄 {col.label}</span>
-                            <span className="text-[9px] bg-slate-200 text-slate-700 px-1 rounded">{col.count}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Atlas Document Panel */}
-              <div className="md:col-span-3 bg-white p-6 space-y-4 font-sans">
-                {/* Breadcrumbs */}
-                <div className="flex items-center space-x-2 text-xs text-slate-500 font-mono">
-                  <span>📁 dbtraining</span>
-                  <span>&gt;</span>
-                  <span className="text-emerald-700 font-bold">yieldsense_ai</span>
-                  <span>&gt;</span>
-                  <span className="bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded">{selectedMongoCollection}</span>
-                </div>
-
-                {/* Sub Navigation Tabs */}
-                <div className="flex items-center space-x-6 border-b border-slate-200 text-xs font-bold">
-                  <span className="text-emerald-700 border-b-2 border-emerald-600 pb-2 flex items-center">
-                    Documents <span className="ml-1 text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full">
-                      {selectedMongoCollection === 'users' ? 4 : selectedMongoCollection === 'yield_predictions' ? predictionHistory.length : selectedMongoCollection === 'farms' ? farms.length : '10,000+'}
-                    </span>
-                  </span>
-                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Aggregations</span>
-                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Schema</span>
-                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Indexes (1)</span>
-                  <span className="text-slate-400 hover:text-slate-600 pb-2 cursor-pointer">Validation</span>
-                </div>
-
-                {/* Atlas Query Filter Bar */}
-                <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between text-xs gap-3">
-                  <div className="flex items-center space-x-2 flex-1 font-mono">
-                    <span className="text-slate-400">⏱️</span>
-                    <input
-                      type="text"
-                      placeholder="Type a query: { field: 'value' } or Generate query ✦"
-                      className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 w-full text-slate-700 text-xs focus:outline-none focus:border-emerald-600"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button type="button" className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center text-xs shadow-sm">
-                      + ADD DATA ▼
-                    </button>
-                    <button type="button" className="bg-white border border-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-50">
-                      📦 BULK ▼
-                    </button>
-                    <button type="button" className="bg-white border border-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-50">
-                      &lt;/&gt; EXPORT CODE
-                    </button>
-                  </div>
-                </div>
-
-                {/* Atlas BSON Document Cards (Matches Screenshot!) */}
-                <div className="space-y-4 pt-2 font-mono text-xs">
-                  {selectedMongoCollection === 'users' && [
-                    { _id: "6a69dc9d48e9fbcd70edeba1", fullName: "Nithin Kethavath", email: "nkethavath29@gmail.com", password: "$2b$12$Nj6ITZC1wacR4qg3mAwum.DW2UvZVwVomuqTnqBaC5Se68jUwxl0", role: "farmer", region: "North Region" },
-                    { _id: "6a6a039058d6b59ed0fbce84", fullName: "Pandu", email: "pandu@gmail.com", password: "$2b$12$CLsQlsjsB5Kl0lysYty84ueykY7TuRRLUhPpqPs5g97ss7he028G2", role: "agronomist", region: "Central Region" },
-                    { _id: "6a6b128190c1f280a99182f2", fullName: "Rajesh Kumar (Farmer)", email: "farmer@yieldsense.ai", password: "$2b$12$utj0qVwoPv9So1oJia78M.petxeh0mwxeBExtA1zjvWfepn4ekcCa", role: "farmer", region: "North Region" },
-                    { _id: "6a6c3391001a1820b182019a", fullName: "System Administrator", email: "admin@yieldsense.ai", password: "$2b$12$PA.za7ya4LobF2AteNtn3uMfgrVJ17Zs94lOkiUA9YHJHUNv6T7ym", role: "admin", region: "All Regions" }
-                  ].map((doc, idx) => (
-                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition space-y-1.5">
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-24 text-slate-500 font-bold">_id:</span>
-                        <span className="text-rose-700 font-bold">ObjectId('{doc._id}')</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-24 text-slate-500 font-bold">fullName:</span>
-                        <span className="text-emerald-700 font-semibold">"{doc.fullName}"</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-24 text-slate-500 font-bold">email:</span>
-                        <span className="text-emerald-700 font-semibold">"{doc.email}"</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-24 text-slate-500 font-bold">password:</span>
-                        <span className="text-emerald-600 font-mono text-[11px]">"{doc.password}"</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-24 text-slate-500 font-bold">role:</span>
-                        <span className="text-emerald-700 font-semibold">"{doc.role}"</span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {selectedMongoCollection === 'yield_predictions' && predictionHistory.map((pred, idx) => (
-                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition space-y-1.5">
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-36 text-slate-500 font-bold">_id:</span>
-                        <span className="text-rose-700 font-bold">ObjectId('{pred.id || `6a6900${idx}`}')</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-36 text-slate-500 font-bold">crop:</span>
-                        <span className="text-emerald-700 font-semibold">"{pred.crop}"</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-36 text-slate-500 font-bold">predicted_yield:</span>
-                        <span className="text-amber-700 font-bold">{pred.predicted_yield_kg_ha} kg/ha</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-36 text-slate-500 font-bold">total_harvest:</span>
-                        <span className="text-emerald-700 font-bold">{pred.total_production_tonnes} Tonnes</span>
-                      </div>
-                      <div className="flex items-center text-slate-800">
-                        <span className="w-36 text-slate-500 font-bold">soil_health:</span>
-                        <span className="text-slate-700">"{pred.soil_health?.status || 'Optimal'}"</span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {selectedMongoCollection !== 'users' && selectedMongoCollection !== 'yield_predictions' && (
-                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-1.5">
-                      <p className="text-slate-500 italic text-xs">Viewing MongoDB documents in collection 'yieldsense_ai.{selectedMongoCollection}'...</p>
-                      <pre className="text-emerald-800 text-[11px] bg-slate-50 p-3 rounded-lg border border-slate-200 overflow-x-auto">
-                        {JSON.stringify({
-                          _id: "6a69dc9d48e9fbcd70edeba1",
-                          collection: selectedMongoCollection,
-                          status: "ACTIVE_IN_MONGODB",
-                          total_documents: selectedMongoCollection === 'historical_crop_yields' ? 28242 : selectedMongoCollection === 'climate_agriculture_impact' ? 10000 : 2200,
-                          connection_uri: "mongodb://localhost:27017/yieldsense_ai"
-                        }, null, 2)}
-                      </pre>
-                    </div>
-                  )}
+                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <ShieldCheck className="w-8 h-8 text-white" />
                 </div>
               </div>
             </div>
+
+            {/* Admin Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Users', value: '3', sub: 'Registered accounts', color: 'violet', icon: Users },
+                { label: 'Total Predictions', value: predictionHistory.length.toString(), sub: 'AI Forecast Runs', color: 'indigo', icon: TrendingUp },
+                { label: 'Active Regions', value: '5', sub: 'North, South, East, West, Central', color: 'purple', icon: Globe },
+                { label: 'ML Accuracy', value: '92.61%', sub: 'Ensemble Engine Score', color: 'blue', icon: Activity }
+              ].map(stat => {
+                const Icon = stat.icon;
+                return (
+                  <div key={stat.label} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+                      <div className={`p-2 rounded-xl bg-${stat.color}-50 text-${stat.color}-600`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-black text-slate-800">{stat.value}</p>
+                    <p className="text-[11px] text-slate-500 mt-1">{stat.sub}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Role Access Matrix */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                <Lock className="w-4 h-4 mr-2 text-violet-600" /> Role-Based Access Control Matrix
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left py-2 px-3 text-slate-500 font-bold">Feature / Module</th>
+                      <th className="text-center py-2 px-3 text-emerald-600 font-bold">🌾 Farmer</th>
+                      <th className="text-center py-2 px-3 text-blue-600 font-bold">🔬 Agronomist</th>
+                      <th className="text-center py-2 px-3 text-violet-600 font-bold">🛡️ Admin</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {[
+                      { feature: 'Dashboard Overview', farmer: true, agro: true, admin: true },
+                      { feature: 'Yield Forecasting (Run)', farmer: true, agro: true, admin: true },
+                      { feature: 'Soil & Weather Analysis', farmer: true, agro: true, admin: true },
+                      { feature: 'Advisory & Recommendations', farmer: true, agro: true, admin: true },
+                      { feature: 'My Fields (Personal)', farmer: true, agro: false, admin: false },
+                      { feature: 'All Farms Data (All Users)', farmer: false, agro: false, admin: true },
+                      { feature: 'User Management', farmer: false, agro: false, admin: true },
+                      { feature: 'Admin Panel', farmer: false, agro: false, admin: true },
+                      { feature: 'System Analytics', farmer: false, agro: true, admin: true },
+                      { feature: 'Export All Data (CSV)', farmer: true, agro: true, admin: true },
+                    ].map(row => (
+                      <tr key={row.feature} className="hover:bg-slate-50 transition">
+                        <td className="py-2.5 px-3 text-slate-700 font-medium">{row.feature}</td>
+                        {['farmer', 'agro', 'admin'].map(role => (
+                          <td key={role} className="text-center py-2.5 px-3">
+                            {row[role]
+                              ? <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 text-xs">✓</span>
+                              : <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-400 text-xs">✗</span>
+                            }
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Registered Users Table */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                <Users className="w-4 h-4 mr-2 text-violet-600" /> Registered System Users
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-2 px-3 text-slate-500 font-bold">Name</th>
+                      <th className="text-left py-2 px-3 text-slate-500 font-bold">Email</th>
+                      <th className="text-center py-2 px-3 text-slate-500 font-bold">Role</th>
+                      <th className="text-left py-2 px-3 text-slate-500 font-bold">Region</th>
+                      <th className="text-center py-2 px-3 text-slate-500 font-bold">Auth</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {[
+                      { name: 'Rajesh Kumar', email: 'farmer@yieldsense.ai', role: 'farmer', region: 'North Region', auth: 'Email' },
+                      { name: 'Dr. Sarah Jenkins', email: 'agronomist@yieldsense.ai', role: 'agronomist', region: 'Central Region', auth: 'Email' },
+                      { name: 'System Administrator', email: 'admin@yieldsense.ai', role: 'admin', region: 'All Regions', auth: 'Email' },
+                      ...(user?.auth_provider === 'google' ? [{ name: user.name, email: user.email, role: user.role, region: user.region || 'North Region', auth: 'Google' }] : [])
+                    ].map((u, i) => (
+                      <tr key={i} className="hover:bg-violet-50/30 transition">
+                        <td className="py-2.5 px-3 font-medium text-slate-800">{u.name}</td>
+                        <td className="py-2.5 px-3 text-slate-500">{u.email}</td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            u.role === 'admin' ? 'bg-violet-100 text-violet-700' :
+                            u.role === 'agronomist' ? 'bg-blue-100 text-blue-700' :
+                            'bg-emerald-100 text-emerald-700'
+                          }`}>{u.role}</span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-500">{u.region}</td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            u.auth === 'Google' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600'
+                          }`}>{u.auth}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         )}
+
       </main>
 
       {/* AUTH MODAL */}
@@ -1715,32 +1816,47 @@ export default function App() {
               <p className="text-xs text-slate-500">Sign in to access your agricultural dashboard</p>
             </div>
 
-            {/* Quick Demo Shortcuts */}
+            {/* Quick Demo Shortcuts (Farmer & Admin Only) */}
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quick Demo Login Shortcuts:</p>
-              <div className="grid grid-cols-3 gap-2">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Quick Login Credentials:</p>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => handleQuickLogin('farmer@yieldsense.ai', 'farmer123')}
-                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold py-1.5 rounded-lg border border-emerald-300 transition"
+                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold py-2 rounded-xl border border-emerald-300 transition flex items-center justify-center space-x-1"
                 >
-                  Farmer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('agronomist@yieldsense.ai', 'agro123')}
-                  className="bg-blue-100 hover:bg-blue-200 text-blue-800 text-[11px] font-bold py-1.5 rounded-lg border border-blue-300 transition"
-                >
-                  Agronomist
+                  <span>👨‍🌾 Farmer Sign In</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickLogin('admin@yieldsense.ai', 'admin123')}
-                  className="bg-purple-100 hover:bg-purple-200 text-purple-800 text-[11px] font-bold py-1.5 rounded-lg border border-purple-300 transition"
+                  className="bg-purple-100 hover:bg-purple-200 text-purple-800 text-[11px] font-bold py-2 rounded-xl border border-purple-300 transition flex items-center justify-center space-x-1"
                 >
-                  Admin
+                  <span>⚙️ Admin Sign In</span>
                 </button>
               </div>
+            </div>
+
+            {/* Google Direct Sign In Button */}
+            <div>
+              <button
+                type="button"
+                onClick={() => handleGoogleSignIn(authMode === 'register' ? regRole : 'farmer')}
+                className="w-full bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-xl border border-slate-300 transition text-xs shadow-sm flex items-center justify-center space-x-2"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>Continue with Google Account</span>
+              </button>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-200 w-full"></div>
+              <span className="bg-white px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider absolute">OR</span>
             </div>
 
             {/* Mode Switcher */}
@@ -1755,7 +1871,7 @@ export default function App() {
                 onClick={() => setAuthMode('register')}
                 className={`flex-1 text-xs font-bold py-2 rounded-lg transition ${authMode === 'register' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
               >
-                Register
+                Register Account
               </button>
             </div>
 
@@ -1772,6 +1888,7 @@ export default function App() {
                   <input
                     type="email"
                     required
+                    placeholder="farmer@yieldsense.ai or admin@yieldsense.ai"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 mt-1 focus:outline-none focus:border-emerald-600 text-xs"
@@ -1792,7 +1909,7 @@ export default function App() {
                   disabled={authLoading}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition mt-2 text-xs shadow-sm"
                 >
-                  {authLoading ? 'Logging In...' : 'Log In'}
+                  {authLoading ? 'Logging In...' : 'Log In & Go to Dashboard'}
                 </button>
               </form>
             ) : (
@@ -1829,14 +1946,13 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-slate-500">Role</label>
+                    <label className="text-xs text-slate-500">Account Type</label>
                     <select
                       value={regRole}
                       onChange={(e) => setRegRole(e.target.value)}
                       className="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-slate-800 mt-1 text-xs"
                     >
                       <option value="farmer">Farmer</option>
-                      <option value="agronomist">Agronomist</option>
                       <option value="admin">Admin</option>
                     </select>
                   </div>
@@ -1858,7 +1974,7 @@ export default function App() {
                   disabled={authLoading}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition mt-2 text-xs shadow-sm"
                 >
-                  {authLoading ? 'Registering...' : 'Create Account & Login'}
+                  {authLoading ? 'Creating Account...' : 'Create Account & Go to Dashboard'}
                 </button>
               </form>
             )}

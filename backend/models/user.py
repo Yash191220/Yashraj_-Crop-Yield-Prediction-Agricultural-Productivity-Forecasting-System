@@ -13,6 +13,13 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class GoogleAuthRequest(BaseModel):
+    email: EmailStr
+    name: str
+    role: Optional[str] = "farmer"
+    google_id: Optional[str] = None
+    picture: Optional[str] = None
+
 class UserResponse(BaseModel):
     id: Optional[str] = None
     name: str

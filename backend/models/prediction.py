@@ -20,16 +20,16 @@ class PredictionRequest(BaseModel):
     organic_matter_percent: float = Field(default=2.5, ge=0, example=2.5)
 
 class SoilHealth(BaseModel):
-    score: float
-    status: str
-    ph: float
-    npk_ratio: str
+    score: Optional[float] = 90.0
+    status: Optional[str] = "Optimal"
+    ph: Optional[float] = 6.8
+    npk_ratio: Optional[str] = "140:45:80"
 
 class WeatherImpact(BaseModel):
-    score: float
-    status: str
-    temperature_celsius: float
-    rainfall_mm: float
+    score: Optional[float] = 95.0
+    status: Optional[str] = "Favorable"
+    temperature_celsius: Optional[float] = 22.5
+    rainfall_mm: Optional[float] = 950.0
 
 class PredictionResponse(BaseModel):
     id: Optional[str] = None
