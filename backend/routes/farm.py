@@ -75,3 +75,41 @@ def delete_farm(farm_id: str, current_user: dict = Depends(get_current_user)):
             
     FARM_DB = [f for f in FARM_DB if not (f["id"] == farm_id and f["user_id"] == current_user["id"])]
     return {"status": "success", "message": f"Farm {farm_id} deleted successfully"}
+
+
+# ─── UPDATE ──────────────────────────────────────────────────────────────────
+@router.put("/{farm_id}", response_model=FarmResponse)
+def update_farm(farm_id: str, farm_data: FarmCreate, current_user: dict = Depends(get_current_user)):
+    """UPDATE - Edit an existing farm's details"""
+    db = get_database()
+    updated_fields = {
+        "farm_name": farm_data.farm_name,
+        "region": farm_data.region,
+        "area_hectares": farm_data.area_hectares,
+        "soil_type": farm_data.soil_type,
+        "irrigation_type": farm_data.irrigation_type,
+        "primary_crops": farm_data.primary_crops,
+        "updated_at": datetime.utcnow()
+    }
+
+    if db is not None:
+        try:
+            result = db.farms.find_one_and_update(
+                {"id": farm_id, "user_id": current_user["id"]},
+                {"$set": updated_fields},
+                return_document=True
+            )
+            if result:
+                result.pop("_id", None)
+                return result
+        except Exception as e:
+            print(f"MongoDB update notice: {e}")
+
+    # Fallback: update in-memory
+    for farm in FARM_DB:
+        if farm["id"] == farm_id and farm["user_id"] == current_user["id"]:
+            farm.update(updated_fields)
+            return farm
+
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="Farm not found")

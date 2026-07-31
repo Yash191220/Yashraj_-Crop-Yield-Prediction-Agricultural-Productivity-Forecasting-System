@@ -20,6 +20,11 @@ class GoogleAuthRequest(BaseModel):
     google_id: Optional[str] = None
     picture: Optional[str] = None
 
+class UserUpdate(BaseModel):
+    """UPDATE - fields a user can change on their profile"""
+    name: Optional[str] = None
+    region: Optional[str] = None
+
 class UserResponse(BaseModel):
     id: Optional[str] = None
     name: str
