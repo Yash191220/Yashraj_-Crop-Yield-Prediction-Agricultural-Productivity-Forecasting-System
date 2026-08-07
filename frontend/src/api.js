@@ -98,6 +98,11 @@ export const predictYield = async (predictionData) => {
   return response.data;
 };
 
+export const getCropRecommendations = async (predictionData) => {
+  const response = await apiClient.post('/prediction/crop-recommend', predictionData);
+  return response.data;
+};
+
 export const getPredictionHistory = async (userId = 'guest') => {
   const response = await apiClient.get(`/prediction/history?user_id=${userId}`);
   return response.data;
@@ -137,6 +142,11 @@ export const deleteFarm = async (farmId) => {
   return response.data;
 };
 
+export const updateFarm = async (farmId, farmData) => {
+  const response = await apiClient.put(`/farm/${farmId}`, farmData);
+  return response.data;
+};
+
 // Role Portal APIs
 export const getFarmerDashboard = async () => {
   const response = await apiClient.get('/user/farmer-dashboard');
@@ -150,6 +160,42 @@ export const getAgronomistReports = async () => {
 
 export const getAdminPanel = async () => {
   const response = await apiClient.get('/user/admin-panel');
+  return response.data;
+};
+
+// Admin Approval & Stats APIs
+export const getAdminStats = async () => {
+  const response = await apiClient.get('/admin/stats');
+  return response.data;
+};
+
+export const getPendingUsers = async () => {
+  const response = await apiClient.get('/admin/pending-users');
+  return response.data;
+};
+
+export const getAllUsers = async () => {
+  const response = await apiClient.get('/admin/all-users');
+  return response.data;
+};
+
+export const approveUser = async (userId) => {
+  const response = await apiClient.put(`/admin/approve/${userId}`);
+  return response.data;
+};
+
+export const rejectUser = async (userId) => {
+  const response = await apiClient.put(`/admin/reject/${userId}`);
+  return response.data;
+};
+
+export const getFarmerActivity = async (userId) => {
+  const response = await apiClient.get(`/admin/farmer/${userId}/activity`);
+  return response.data;
+};
+
+export const deleteFarmer = async (userId) => {
+  const response = await apiClient.delete(`/admin/farmer/${userId}`);
   return response.data;
 };
 

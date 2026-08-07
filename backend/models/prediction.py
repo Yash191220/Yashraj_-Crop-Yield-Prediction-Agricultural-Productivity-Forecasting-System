@@ -33,11 +33,24 @@ class WeatherImpact(BaseModel):
 
 class PredictionResponse(BaseModel):
     id: Optional[str] = None
+    user_id: Optional[str] = "guest"
+    crop: Optional[str] = "Wheat"
+    region: Optional[str] = "North Region"
+    season: Optional[str] = "Rabi"
+    soil_type: Optional[str] = "Loamy"
+    irrigation_type: Optional[str] = "Canal"
+    area_hectares: Optional[float] = 10.0
+    rainfall_mm: Optional[float] = 800.0
+    temperature_celsius: Optional[float] = 22.0
+    soil_ph: Optional[float] = 6.8
+    nitrogen_n: Optional[float] = 140.0
+    phosphorus_p: Optional[float] = 45.0
+    potassium_k: Optional[float] = 80.0
     predicted_yield_kg_ha: float
     total_production_tonnes: float
     productivity_score: float
-    soil_health: SoilHealth
-    weather_impact: WeatherImpact
-    risk_assessment: List[str]
-    recommendations: List[str]
+    soil_health: Optional[SoilHealth] = None
+    weather_impact: Optional[WeatherImpact] = None
+    risk_assessment: List[str] = []
+    recommendations: List[str] = []
     created_at: Optional[datetime] = None

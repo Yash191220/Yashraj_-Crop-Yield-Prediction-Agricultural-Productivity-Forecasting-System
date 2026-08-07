@@ -5,9 +5,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 ATLAS_URI = "mongodb+srv://yashraj191220_db_user:S6fQWhT99rohAkli@cropyiled.slmdhrd.mongodb.net/yieldsense_ai?retryWrites=true&w=majority"
-MONGO_URI = os.getenv("MONGO_URI", ATLAS_URI)
-if "localhost" in MONGO_URI or "127.0.0.1" in MONGO_URI:
-    MONGO_URI = ATLAS_URI
+LOCAL_URI = "mongodb://localhost:27017"
 
 DATABASE_NAME = "yieldsense_ai"
 
@@ -17,43 +15,41 @@ class Database:
 
     @classmethod
     def get_db(cls):
-        # Retry connection if not connected or dropped
-        if cls._db is None or cls._client is None:
+        # Return existing active connection if ping succeeds
+        if cls._db is not None and cls._client is not None:
             try:
-                cls._client = MongoClient(
-                    MONGO_URI,
-                    serverSelectionTimeoutMS=15000,
-                    connectTimeoutMS=15000,
-                    socketTimeoutMS=15000,
-                    retryWrites=True
-                )
-                # Verify ping
                 cls._client.admin.command('ping')
-                cls._db = cls._client[DATABASE_NAME]
-                print(f"Connected to MongoDB Atlas Cloud database: {DATABASE_NAME}")
-            except Exception as e:
-                print(f"MongoDB Atlas Connection Error: {e}")
+                return cls._db
+            except Exception:
                 cls._db = None
                 cls._client = None
-        else:
-            # Verify existing connection is alive
+
+        # Try Atlas first, fallback to Local Mongo
+        env_uri = os.getenv("MONGO_URI", ATLAS_URI)
+        uris_to_try = [ATLAS_URI, LOCAL_URI] if "mongodb.net" in env_uri else [LOCAL_URI, ATLAS_URI]
+
+        for uri in uris_to_try:
             try:
-                cls._client.admin.command('ping')
-            except Exception:
-                try:
-                    cls._client = MongoClient(
-                        MONGO_URI,
-                        serverSelectionTimeoutMS=15000,
-                        connectTimeoutMS=15000,
-                        socketTimeoutMS=15000,
-                        retryWrites=True
-                    )
-                    cls._db = cls._client[DATABASE_NAME]
-                except Exception as e:
-                    print(f"MongoDB Atlas Reconnection Error: {e}")
-                    cls._db = None
-                    cls._client = None
-        return cls._db
+                client = MongoClient(
+                    uri,
+                    serverSelectionTimeoutMS=2500,
+                    connectTimeoutMS=2500,
+                    socketTimeoutMS=2500,
+                    retryWrites=True
+                )
+                client.admin.command('ping')
+                cls._client = client
+                cls._db = client[DATABASE_NAME]
+                db_type = "MongoDB Atlas Cloud" if "mongodb.net" in uri else "Local MongoDB"
+                print(f"✅ Connected to {db_type} database: {DATABASE_NAME}")
+                return cls._db
+            except Exception as e:
+                print(f"⚠️ Connection attempt failed for {uri[:35]}... : {e}")
+
+        cls._db = None
+        cls._client = None
+        return None
 
 def get_database():
     return Database.get_db()
+

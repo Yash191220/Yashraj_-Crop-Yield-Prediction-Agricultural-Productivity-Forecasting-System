@@ -14,6 +14,8 @@ router = APIRouter(prefix="/api/prediction", tags=["Yield Prediction"])
 # In-memory history store fallback
 PREDICTION_HISTORY = []
 
+CROPS = ['Wheat', 'Rice', 'Maize', 'Soybean', 'Cotton', 'Barley', 'Sugarcane', 'Potato']
+
 @router.post("/predict", response_model=PredictionResponse)
 def predict_crop_yield(request: PredictionRequest):
     try:
@@ -56,19 +58,57 @@ def predict_crop_yield(request: PredictionRequest):
             except Exception as e:
                 print(f"MongoDB yield prediction save notice: {e}")
                 
-        PREDICTION_HISTORY.append(result)
-        return result
+        PREDICTION_HISTORY.append(save_record)
+        return save_record
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction engine error: {str(e)}")
+
+@router.post("/crop-recommend")
+def recommend_crop(request: PredictionRequest):
+    """Run ML predictions for all crops with same field/climate inputs and rank them."""
+    try:
+        base_input = request.model_dump()
+        results = []
+        for crop in CROPS:
+            try:
+                crop_input = {**base_input, "crop": crop}
+                pred = predict_yield(crop_input)
+                results.append({
+                    "crop": crop,
+                    "predicted_yield_kg_ha": pred.get("predicted_yield_kg_ha", 0),
+                })
+            except Exception:
+                results.append({"crop": crop, "predicted_yield_kg_ha": 0})
+
+        # Sort by yield descending
+        results.sort(key=lambda x: x["predicted_yield_kg_ha"], reverse=True)
+
+        # Calculate percentage relative to top yield
+        max_yield = results[0]["predicted_yield_kg_ha"] if results and results[0]["predicted_yield_kg_ha"] > 0 else 1
+        total_yield = sum(r["predicted_yield_kg_ha"] for r in results)
+
+        ranked = []
+        for i, r in enumerate(results):
+            ranked.append({
+                "rank": i + 1,
+                "crop": r["crop"],
+                "predicted_yield_kg_ha": r["predicted_yield_kg_ha"],
+                "suitability_pct": round((r["predicted_yield_kg_ha"] / max_yield) * 100, 1),
+                "share_pct": round((r["predicted_yield_kg_ha"] / total_yield) * 100, 1) if total_yield > 0 else 0,
+            })
+
+        return {"recommendations": ranked, "based_on_region": base_input.get("region"), "based_on_season": base_input.get("season")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Crop recommendation error: {str(e)}")
 
 @router.get("/history", response_model=list[PredictionResponse])
 def get_prediction_history(user_id: str = "guest"):
     db = get_database()
     if db is not None:
         try:
-            # Query for user's predictions as well as default/guest predictions
-            query = {"$or": [{"user_id": user_id}, {"user_id": "usr_farmer_1"}, {"user_id": "guest"}]} if user_id else {}
-            records = list(db.yield_predictions.find(query, {"_id": 0}).sort("created_at", -1).limit(30))
+            # Query strictly for the requesting user's predictions
+            query = {"user_id": user_id} if user_id and user_id != "all" else {}
+            records = list(db.yield_predictions.find(query, {"_id": 0}).sort("created_at", -1).limit(50))
             
             valid_records = []
             for r in records:
@@ -79,10 +119,10 @@ def get_prediction_history(user_id: str = "guest"):
                 r["recommendations"] = r.get("recommendations", ["Maintain recommended irrigation and soil nutrients"])
                 valid_records.append(r)
                 
-            if valid_records:
-                return valid_records
+            return valid_records
         except Exception as e:
             print(f"MongoDB prediction history read notice: {e}")
             
-    # Return in-memory fallback
-    return list(reversed(PREDICTION_HISTORY[-30:]))
+    # Return in-memory fallback filtered by user_id
+    user_logs = [p for p in PREDICTION_HISTORY if p.get("user_id") == user_id] if user_id and user_id != "all" else PREDICTION_HISTORY
+    return list(reversed(user_logs[-50:]))
