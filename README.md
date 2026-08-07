@@ -1,4 +1,4 @@
-# 🌾 YieldSense AI — Crop Yield Prediction & Agricultural Productivity Forecasting System
+# YieldSense AI — Crop Yield Prediction & Agricultural Productivity Forecasting System
 
 > **Built by Yashraj** · Full-Stack AI Platform · React + FastAPI + Machine Learning
 
@@ -6,11 +6,11 @@
 
 **YieldSense AI** is a complete, production-ready agricultural intelligence platform that I built from the ground up. The idea is simple: farmers and agribusinesses shouldn't have to guess what their harvest will look like. They deserve real data-driven forecasts. This system takes in soil measurements, weather conditions, and farming parameters — and returns accurate, AI-powered crop yield predictions in real time.
 
-At its heart, it's a 3-in-1 platform — a crop yield forecasting engine, a soil health analyser, and a crop recommendation system — all wrapped inside a beautiful, interactive dashboard.
+At its heart, it's a 3-in-1 platform — a crop yield forecasting engine, a soil health analyser, and a crop recommendation system — all wrapped inside a clean, interactive dashboard.
 
 ---
 
-## 🎯 What This Project Actually Does
+## What This Project Actually Does
 
 Farmers and agricultural researchers can:
 
@@ -22,25 +22,25 @@ Farmers and agricultural researchers can:
 
 ---
 
-## 🏗️ How the System is Structured
+## How the System is Structured
 
 Here's a high-level view of how all the pieces connect:
 
 ```mermaid
 graph TD
-    subgraph "👤 User Layer"
+    subgraph "User Layer"
         U1["Farmer / Agronomist / Admin"]
         U2["Web Browser"]
     end
 
-    subgraph "🎨 Frontend (React + Vite)"
+    subgraph "Frontend (React + Vite)"
         F1["Login / Register Page"]
         F2["Main Analytics Dashboard"]
         F3["Yield Forecasting Engine"]
         F4["Admin Control Panel"]
     end
 
-    subgraph "⚙️ Backend API (FastAPI)"
+    subgraph "Backend API (FastAPI)"
         B1["JWT Auth Router /api/auth"]
         B2["Prediction Router /api/prediction"]
         B3["Farm Router /api/farm"]
@@ -48,7 +48,7 @@ graph TD
         B5["Soil & Weather Routers"]
     end
 
-    subgraph "🤖 AI / ML Pipeline"
+    subgraph "AI / ML Pipeline"
         M1["Feature Engineering & Preprocessing"]
         M2["Random Forest Regressor"]
         M3["Extra Trees Regressor"]
@@ -56,7 +56,7 @@ graph TD
         M5["Weighted Ensemble Model (model.pkl)"]
     end
 
-    subgraph "🗄️ Data Layer"
+    subgraph "Data Layer"
         D1[("MongoDB Database")]
         D2[("model.pkl — Trained AI Bundle")]
         D3[("CSV Datasets (Kaggle / FAOSTAT)")]
@@ -73,25 +73,25 @@ graph TD
 
 ---
 
-## 🔄 End-to-End Prediction Workflow
+## End-to-End Prediction Workflow
 
 This is the step-by-step journey of a single yield prediction request — from the farmer clicking "Run Forecast" to receiving a result:
 
 ```mermaid
 flowchart TD
-    A["🧑‍🌾 Farmer fills in the Forecast Form\n(Crop, Region, Season, NPK, Soil pH, Rainfall, Temp, Area)"]
-    B["📤 React frontend calls POST /api/prediction/predict via Axios"]
-    C["🔐 JWT Middleware validates the Bearer token"]
-    D["📥 FastAPI receives PredictionRequest — Pydantic validates all fields"]
-    E["🔧 Feature Engineering in preprocessing.py\n• rainfall_per_temp\n• npk_sum\n• n_p_ratio\n• ph_deviation\n• temp_humidity_index"]
-    F["⚖️ StandardScaler normalises numerical features\nOneHotEncoder encodes region, crop, season, soil_type, irrigation_type"]
-    G1["🌲 Random Forest Regressor\n(40% weight)"]
-    G2["🌳 Extra Trees Regressor\n(40% weight)"]
-    G3["⚡ XGBoost Regressor\n(20% weight)"]
-    H["🔢 Weighted Ensemble Blend\npredicted_log_yield → expm1() → kg/ha"]
-    I["📊 Post-processing\n• Soil Health Score (0–100)\n• Weather Impact Score\n• Risk Assessment\n• Crop Recommendations"]
-    J["💾 Result saved to MongoDB\n(fallback: in-memory store)"]
-    K["🖥️ Dashboard displays:\nYield (kg/ha) · Total Tonnes · Productivity Score\nSoil Health Ring · Crop Suitability Ranking"]
+    A["Farmer fills in the Forecast Form\n(Crop, Region, Season, NPK, Soil pH, Rainfall, Temp, Area)"]
+    B["React frontend calls POST /api/prediction/predict via Axios"]
+    C["JWT Middleware validates the Bearer token"]
+    D["FastAPI receives PredictionRequest — Pydantic validates all fields"]
+    E["Feature Engineering in preprocessing.py\n• rainfall_per_temp\n• npk_sum\n• n_p_ratio\n• ph_deviation\n• temp_humidity_index"]
+    F["StandardScaler normalises numerical features\nOneHotEncoder encodes region, crop, season, soil_type, irrigation_type"]
+    G1["Random Forest Regressor\n(40% weight)"]
+    G2["Extra Trees Regressor\n(40% weight)"]
+    G3["XGBoost Regressor\n(20% weight)"]
+    H["Weighted Ensemble Blend\npredicted_log_yield → expm1() → kg/ha"]
+    I["Post-processing\n• Soil Health Score (0–100)\n• Weather Impact Score\n• Risk Assessment\n• Crop Recommendations"]
+    J["Result saved to MongoDB\n(fallback: in-memory store)"]
+    K["Dashboard displays:\nYield (kg/ha) · Total Tonnes · Productivity Score\nSoil Health Ring · Crop Suitability Ranking"]
 
     A --> B --> C --> D --> E --> F
     F --> G1 & G2 & G3
@@ -100,7 +100,7 @@ flowchart TD
 
 ---
 
-## 🤖 ML Crop Recommendation Flow
+## ML Crop Recommendation Flow
 
 When a farmer asks "which crop should I grow?", the system doesn't guess — it runs the AI model 8 times (once per crop) and returns a ranked leaderboard:
 
@@ -115,7 +115,7 @@ flowchart LR
     C5["Others..."]
     D["Sort descending by predicted yield"]
     E["Calculate suitability % vs top crop"]
-    F["📊 Ranked leaderboard with % bars\nDisplayed in Yield Forecasting tab"]
+    F["Ranked leaderboard with % bars\nDisplayed in Yield Forecasting tab"]
 
     A --> B --> C1 & C2 & C3 & C4 & C5
     C1 & C2 & C3 & C4 & C5 --> D --> E --> F
@@ -123,7 +123,7 @@ flowchart LR
 
 ---
 
-## 🧠 The Machine Learning Model — How It Was Built
+## The Machine Learning Model — How It Was Built
 
 The AI model is an **ensemble of three algorithms** trained on crop yield datasets combining FAOSTAT records and Kaggle agricultural data:
 
@@ -151,7 +151,7 @@ The AI model is an **ensemble of three algorithms** trained on crop yield datase
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technology | Why |
 |---|---|---|
@@ -169,7 +169,7 @@ The AI model is an **ensemble of three algorithms** trained on crop yield datase
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 CropYield/
@@ -228,7 +228,7 @@ CropYield/
 
 ---
 
-## 🔌 API Endpoints Reference
+## API Endpoints Reference
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -255,7 +255,7 @@ CropYield/
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
 The system uses MongoDB with 5 primary collections:
 
@@ -332,16 +332,16 @@ erDiagram
 
 ---
 
-## 🔐 Authentication Flow
+## Authentication Flow
 
 The platform uses **JWT-based stateless authentication** with role-based access control (RBAC):
 
 ```mermaid
 sequenceDiagram
-    participant U as 👤 User
-    participant F as 🎨 React Frontend
-    participant B as ⚙️ FastAPI Backend
-    participant DB as 🗄️ MongoDB
+    participant U as User
+    participant F as React Frontend
+    participant B as FastAPI Backend
+    participant DB as MongoDB
 
     U->>F: Fill Login Form (email + password)
     F->>B: POST /api/auth/login
@@ -361,7 +361,7 @@ sequenceDiagram
 
 ---
 
-## 🚀 Quick Start — Run it Locally
+## Quick Start — Run it Locally
 
 ### Step 1: Backend
 
@@ -417,24 +417,24 @@ ALLOWED_ORIGINS=http://localhost:5173
 
 ---
 
-## 📊 What the Dashboard Shows
+## What the Dashboard Shows
 
 The main dashboard is split into two views:
 
-### 📈 Dashboard View — Insights & Analytics
+### Dashboard View — Insights & Analytics
 - **4 KPI Cards**: Total Predictions Run, Average Yield (kg/ha), Best Performing Crop, Soil Fertility Status
 - **Bar Chart**: AI Forecast vs Regional Baseline across all 8 crops — both styled with a clean white card design
 - **Soil Health Index Card**: Live SVG donut ring (score/100) + per-nutrient mini cards (N, P, K, pH, Organic Matter) with coloured progress bars
 - **Prediction Log Table**: Searchable, filterable history table with CSV export
 
-### 🌾 Yield Forecasting View — The Prediction Engine
+### Yield Forecasting View — The Prediction Engine
 - **Input Form**: 9 numerical inputs (area, rainfall, temperature, humidity, soil pH, N, P, K, organic matter) + 4 categorical dropdowns (crop, region, season, soil type, irrigation type)
 - **AI Output Panel**: Predicted yield, total tonnes, productivity score, soil health score, weather impact
 - **Crop Suitability Ranking**: After running a forecast, the system automatically ranks all 8 crops by predicted yield — with horizontal progress bars showing relative suitability %
 
 ---
 
-## 🌱 Supported Crops
+## Supported Crops
 
 | Crop | Typical Yield Range | Best Season |
 |---|---|---|
@@ -449,7 +449,7 @@ The main dashboard is split into two views:
 
 ---
 
-## 🧩 Key Technical Decisions
+## Key Technical Decisions
 
 **Why FastAPI over Flask/Django?**
 FastAPI gives automatic Pydantic request validation, auto-generated Swagger docs, and native async support — all out of the box. For a data-heavy platform with ML inference, this reduces a lot of boilerplate.
@@ -465,7 +465,7 @@ MongoDB gives schema flexibility for storing rich prediction objects (nested soi
 
 ---
 
-## 👨‍💻 About This Project
+## About This Project
 
 This project was designed and built as a full-stack AI portfolio project demonstrating:
 
@@ -476,4 +476,4 @@ This project was designed and built as a full-stack AI portfolio project demonst
 
 ---
 
-*Built with care for Indian agriculture 🇮🇳 — where 60% of the population depends on farming.*
+*Built for agricultural intelligence.*
