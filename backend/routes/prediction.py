@@ -4,8 +4,15 @@ import os
 from datetime import datetime
 import uuid
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../ml'))
-from predict import predict_yield
+ml_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../ml'))
+if ml_dir not in sys.path:
+    sys.path.insert(0, ml_dir)
+
+try:
+    from predict import predict_yield
+except ImportError:
+    from ml.predict import predict_yield
+
 from models.prediction import PredictionRequest, PredictionResponse
 from database.db import get_database
 

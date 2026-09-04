@@ -108,6 +108,22 @@ export const getPredictionHistory = async (userId = 'guest') => {
   return response.data;
 };
 
+// Productivity & Seasonal Reporting APIs
+export const getProductivitySeasonalReport = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.region && params.region !== 'All Regions') query.append('region', params.region);
+  if (params.season && params.season !== 'All Seasons') query.append('season', params.season);
+  if (params.area_hectares) query.append('area_hectares', params.area_hectares);
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const response = await apiClient.get(`/reports/productivity-seasonal${queryString}`);
+  return response.data;
+};
+
+export const generateCustomReport = async (reportData) => {
+  const response = await apiClient.post('/reports/generate-custom', reportData);
+  return response.data;
+};
+
 // Weather APIs
 export const analyzeWeather = async (weatherData) => {
   const response = await apiClient.post('/weather/analyze', weatherData);
@@ -120,9 +136,55 @@ export const assessSoil = async (soilData) => {
   return response.data;
 };
 
-// Recommendation APIs
+// Recommendation & Agronomic Workflow APIs
 export const getRecommendations = async (queryData) => {
   const response = await apiClient.post('/recommendation/query', queryData);
+  return response.data;
+};
+
+export const runCropSelectionWorkflow = async (data) => {
+  const response = await apiClient.post('/recommendation/workflows/crop-selection', data);
+  return response.data;
+};
+
+export const runNutrientPlanWorkflow = async (data) => {
+  const response = await apiClient.post('/recommendation/workflows/nutrient-plan', data);
+  return response.data;
+};
+
+export const runPestManagementWorkflow = async (data) => {
+  const response = await apiClient.post('/recommendation/workflows/pest-management', data);
+  return response.data;
+};
+
+export const runIrrigationScheduleWorkflow = async (data) => {
+  const response = await apiClient.post('/recommendation/workflows/irrigation-schedule', data);
+  return response.data;
+};
+
+export const runCropRotationWorkflow = async (data) => {
+  const response = await apiClient.post('/recommendation/workflows/crop-rotation', data);
+  return response.data;
+};
+
+export const getRecommendationCatalog = async () => {
+  const response = await apiClient.get('/recommendation/catalog');
+  return response.data;
+};
+
+// Risk Assessment & Disaster Mitigation APIs
+export const evaluateFarmRisk = async (data) => {
+  const response = await apiClient.post('/risk/evaluate', data);
+  return response.data;
+};
+
+export const simulateClimateStressTest = async (data) => {
+  const response = await apiClient.post('/risk/stress-test', data);
+  return response.data;
+};
+
+export const getRegionalRiskMatrix = async () => {
+  const response = await apiClient.get('/risk/regional-matrix');
   return response.data;
 };
 
@@ -190,12 +252,52 @@ export const rejectUser = async (userId) => {
 };
 
 export const getFarmerActivity = async (userId) => {
-  const response = await apiClient.get(`/admin/farmer/${userId}/activity`);
+  const response = await apiClient.get(`/admin/user/${userId}/activity`);
+  return response.data;
+};
+export const getUserActivity = getFarmerActivity;
+
+export const deleteFarmer = async (userId) => {
+  const response = await apiClient.delete(`/admin/user/${userId}`);
+  return response.data;
+};
+export const deleteUser = deleteFarmer;
+
+
+// Advisor Portal & Live Consultation APIs
+export const getAdvisorStats = async () => {
+  const response = await apiClient.get('/advisor/stats');
   return response.data;
 };
 
-export const deleteFarmer = async (userId) => {
-  const response = await apiClient.delete(`/admin/farmer/${userId}`);
+export const listAdvisorInquiries = async (status = 'all') => {
+  const response = await apiClient.get(`/advisor/inquiries?status=${status}`);
+  return response.data;
+};
+
+export const getInquiryThread = async (inquiryId) => {
+  const response = await apiClient.get(`/advisor/thread/${inquiryId}`);
+  return response.data;
+};
+
+export const getFarmerActiveThread = async (email = '') => {
+  if (!email) return null;
+  const response = await apiClient.get(`/advisor/farmer-thread?email=${encodeURIComponent(email)}`);
+  return response.data;
+};
+
+export const submitFarmerInquiry = async (payload) => {
+  const response = await apiClient.post('/advisor/inquiry', payload);
+  return response.data;
+};
+
+export const replyToInquiry = async (payload) => {
+  const response = await apiClient.post('/advisor/reply', payload);
+  return response.data;
+};
+
+export const updateInquiryStatus = async (inquiryId, status) => {
+  const response = await apiClient.post('/advisor/status', { inquiry_id: inquiryId, status });
   return response.data;
 };
 

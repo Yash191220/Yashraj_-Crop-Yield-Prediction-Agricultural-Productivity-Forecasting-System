@@ -10,7 +10,7 @@ if backend_dir not in sys.path:
 
 load_dotenv(os.path.join(backend_dir, ".env"))
 
-from routes import auth, user, prediction, weather, soil, recommendation, farm, admin
+from routes import auth, user, prediction, weather, soil, recommendation, farm, admin, reports, risk, advisor
 
 app = FastAPI(
     title="YieldSense AI Backend API",
@@ -37,6 +37,9 @@ app.include_router(weather.router)
 app.include_router(soil.router)
 app.include_router(recommendation.router)
 app.include_router(admin.router)
+app.include_router(reports.router)
+app.include_router(risk.router)
+app.include_router(advisor.router)
 
 @app.get("/")
 def read_root():

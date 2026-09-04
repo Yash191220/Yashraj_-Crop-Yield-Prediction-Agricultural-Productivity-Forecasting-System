@@ -44,6 +44,7 @@ def get_admin_stats(current_user: dict = Depends(require_roles(["admin"]))):
     
     total_users_count = 0
     farmer_count = 0
+    advisor_count = 0
     admin_count = 0
     total_predictions_count = 0
     active_regions = set()
@@ -59,6 +60,8 @@ def get_admin_stats(current_user: dict = Depends(require_roles(["admin"]))):
                 role = u.get("role", "farmer")
                 if role == "farmer":
                     farmer_count += 1
+                elif role in ["advisor", "agronomist"]:
+                    advisor_count += 1
                 elif role == "admin":
                     admin_count += 1
                 reg = u.get("region")
@@ -86,6 +89,7 @@ def get_admin_stats(current_user: dict = Depends(require_roles(["admin"]))):
         all_users = in_mem_users
         total_users_count = len(in_mem_users)
         farmer_count = sum(1 for u in in_mem_users if u.get("role") == "farmer")
+        advisor_count = sum(1 for u in in_mem_users if u.get("role") in ["advisor", "agronomist"])
         admin_count = sum(1 for u in in_mem_users if u.get("role") == "admin")
         
     if total_predictions_count == 0:
@@ -105,6 +109,7 @@ def get_admin_stats(current_user: dict = Depends(require_roles(["admin"]))):
     return {
         "total_users": total_users_count,
         "farmer_count": farmer_count,
+        "advisor_count": advisor_count,
         "admin_count": admin_count,
         "total_predictions": total_predictions_count,
         "active_regions_count": len(active_regions),
@@ -195,35 +200,72 @@ def reject_user(user_id: str, current_user: dict = Depends(require_roles(["admin
     raise HTTPException(status_code=404, detail="Pending user not found.")
 
 
-# ─── GET: Farmer Full Activity Profile ────────────────────────────────────────
+# ─── GET: User (Farmer or Advisor) Full Activity Profile ──────────────────────
+@router.get("/user/{user_id}/activity")
 @router.get("/farmer/{user_id}/activity")
-def get_farmer_activity(user_id: str, current_user: dict = Depends(require_roles(["admin"]))):
-    """Admin only: Get full activity profile for a specific farmer (predictions + farms)"""
+def get_user_activity(user_id: str, current_user: dict = Depends(require_roles(["admin"]))):
+    """Admin only: Get full activity profile for a specific user (Farmer or Advisor)"""
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database unavailable")
 
-    # Find the farmer user
-    farmer = db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
-    if not farmer:
-        raise HTTPException(status_code=404, detail="Farmer not found")
-    if isinstance(farmer.get("created_at"), datetime):
-        farmer["created_at"] = farmer["created_at"].isoformat()
+    # Find by id, email, or _id
+    target_user = db.users.find_one({"$or": [{"id": user_id}, {"email": user_id}]}, {"_id": 0, "password_hash": 0})
+    if not target_user:
+        from bson.objectid import ObjectId
+        if ObjectId.is_valid(user_id):
+            target_user = db.users.find_one({"_id": ObjectId(user_id)}, {"_id": 0, "password_hash": 0})
 
-    # Get their predictions
-    predictions = list(db.yield_predictions.find({"user_id": user_id}, {"_id": 0}))
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if isinstance(target_user.get("created_at"), datetime):
+        target_user["created_at"] = target_user["created_at"].isoformat()
+
+    role = target_user.get("role", "farmer")
+    is_advisor = role in ["advisor", "agronomist"]
+
+    # If Advisor: get their consultation statistics and handled inquiries
+    if is_advisor:
+        from routes.advisor import INQUIRIES_DB
+        advisor_name = target_user.get("name", "")
+        advisor_email = target_user.get("email", "")
+        
+        # Gather inquiries where advisor replied or participated
+        advisor_inquiries = []
+        for inq in INQUIRIES_DB.values():
+            replied = any(m.get("sender_name") == advisor_name or m.get("sender_role") == "advisor" for m in inq.get("messages", []))
+            if replied or inq.get("advisor_email") == advisor_email:
+                advisor_inquiries.append(inq)
+
+        return {
+            "user": target_user,
+            "farmer": target_user, # for backwards compatibility
+            "role": role,
+            "is_advisor": True,
+            "inquiries": advisor_inquiries,
+            "inquiry_count": len(advisor_inquiries),
+            "predictions": [],
+            "farms": [],
+            "prediction_count": 0,
+            "farm_count": 0
+        }
+
+    # If Farmer: Get their predictions and farm parcels
+    predictions = list(db.yield_predictions.find({"$or": [{"user_id": user_id}, {"user_id": target_user.get("email")}]}, {"_id": 0}))
     for p in predictions:
         if isinstance(p.get("created_at"), datetime):
             p["created_at"] = p["created_at"].isoformat()
 
-    # Get their farm parcels
-    farms = list(db.farms.find({"user_id": user_id}, {"_id": 0}))
+    farms = list(db.farms.find({"$or": [{"user_id": user_id}, {"user_id": target_user.get("email")}]}, {"_id": 0}))
     for f in farms:
         if isinstance(f.get("created_at"), datetime):
             f["created_at"] = f["created_at"].isoformat()
 
     return {
-        "farmer": farmer,
+        "user": target_user,
+        "farmer": target_user,
+        "role": role,
+        "is_advisor": False,
         "predictions": predictions,
         "farms": farms,
         "prediction_count": len(predictions),
@@ -231,44 +273,54 @@ def get_farmer_activity(user_id: str, current_user: dict = Depends(require_roles
     }
 
 
-# ─── DELETE: Remove a Farmer and All Their Data ───────────────────────────────
+# ─── DELETE: Remove a User (Farmer or Advisor) and All Their Data in MongoDB Atlas ───
+@router.delete("/user/{user_id}")
 @router.delete("/farmer/{user_id}")
-def delete_farmer(user_id: str, current_user: dict = Depends(require_roles(["admin"]))):
-    """Admin only: Permanently delete a farmer and all their data (predictions + farms)"""
+def delete_user(user_id: str, current_user: dict = Depends(require_roles(["admin"]))):
+    """Admin only: Permanently delete a farmer or advisor and all their data in MongoDB Atlas"""
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database unavailable")
 
-    farmer = db.users.find_one({"id": user_id})
-    if not farmer:
-        raise HTTPException(status_code=404, detail="Farmer not found")
+    # Find by id, email, or _id
+    target_user = db.users.find_one({"$or": [{"id": user_id}, {"email": user_id}]})
+    if not target_user:
+        from bson.objectid import ObjectId
+        if ObjectId.is_valid(user_id):
+            target_user = db.users.find_one({"_id": ObjectId(user_id)})
 
-    # Only allow deleting farmers, not admins
-    if farmer.get("role") == "admin":
-        raise HTTPException(status_code=403, detail="Cannot delete an admin account.")
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    farmer_name = farmer.get("name", farmer.get("email", user_id))
+    # Only allow deleting farmers and advisors, not admins
+    if target_user.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete an administrator account.")
 
-    # Delete predictions
-    pred_result = db.yield_predictions.delete_many({"user_id": user_id})
+    user_name = target_user.get("name", target_user.get("email", user_id))
+    user_str_id = target_user.get("id", user_id)
+    email = target_user.get("email")
+    role = target_user.get("role", "farmer")
 
-    # Delete farm parcels
-    farm_result = db.farms.delete_many({"user_id": user_id})
+    # Delete predictions from MongoDB Atlas
+    pred_result = db.yield_predictions.delete_many({"$or": [{"user_id": user_str_id}, {"user_id": email}]})
 
-    # Delete the user
-    db.users.delete_one({"id": user_id})
+    # Delete farm parcels from MongoDB Atlas
+    farm_result = db.farms.delete_many({"$or": [{"user_id": user_str_id}, {"user_id": email}]})
+
+    # Delete user document permanently from MongoDB Atlas
+    db.users.delete_one({"_id": target_user["_id"]})
 
     # Also remove from in-memory USER_DB
-    email = farmer.get("email")
     if email and email in USER_DB:
         del USER_DB[email]
 
-    print(f"🗑️ Admin {current_user['email']} deleted farmer {farmer_name} "
+    print(f"🗑️ Admin {current_user['email']} permanently deleted {role} '{user_name}' from MongoDB Atlas "
           f"({pred_result.deleted_count} predictions, {farm_result.deleted_count} farms removed)")
 
     return {
         "success": True,
-        "message": f"Farmer '{farmer_name}' and all their data have been permanently deleted.",
+        "message": f"{role.capitalize()} '{user_name}' and all associated data permanently deleted from MongoDB Atlas.",
         "deleted_predictions": pred_result.deleted_count,
         "deleted_farms": farm_result.deleted_count
     }
+

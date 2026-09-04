@@ -2,103 +2,243 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
+
 from preprocessing import clean_dataset
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.pkl')
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
 
 _model_bundle = None
 
+
 def load_model():
     global _model_bundle
+
     if _model_bundle is None:
-        if not os.path.exists(MODEL_PATH) or os.path.getsize(MODEL_PATH) == 0:
+
+        if not os.path.exists(MODEL_PATH):
             from train_model import train
             train()
+
         _model_bundle = joblib.load(MODEL_PATH)
+
     return _model_bundle
 
-def predict_yield(input_data: dict) -> dict:
+
+def predict_yield(input_data):
+
     bundle = load_model()
-    preprocessor = bundle['preprocessor']
-    rf_model = bundle['rf_model']
-    boost_model = bundle['boost_model']
-    et_model = bundle.get('et_model')
-    
-    df_input = pd.DataFrame([input_data])
-    df_input = clean_dataset(df_input)
-    X_processed = preprocessor.transform(df_input)
 
-    rf_pred = rf_model.predict(X_processed)[0]
-    boost_pred = boost_model.predict(X_processed)[0]
-    
-    if et_model is not None:
-        et_pred = et_model.predict(X_processed)[0]
-        predicted_yield = float(0.40 * rf_pred + 0.40 * et_pred + 0.20 * boost_pred)
-    else:
-        predicted_yield = float(0.50 * rf_pred + 0.50 * boost_pred)
+    preprocessor = bundle["preprocessor"]
 
-    predicted_yield = max(100.0, predicted_yield)
-    area = float(input_data.get('area_hectares', 1.0))
-    total_production_tonnes = round((predicted_yield * area) / 1000.0, 2)
-    
-    # Soil & Weather evaluation metrics
-    ph = float(input_data.get('soil_ph', 6.5))
-    temp = float(input_data.get('temperature_celsius', 25.0))
-    rainfall = float(input_data.get('rainfall_mm', 800.0))
-    n = float(input_data.get('nitrogen_n', 100.0))
-    p = float(input_data.get('phosphorus_p', 40.0))
-    k = float(input_data.get('potassium_k', 60.0))
-    
-    # Calculate soil suitability rating
-    soil_score = 100 - abs(ph - 6.8) * 15 - max(0, 80 - n) * 0.3 - max(0, 30 - p) * 0.5
+    rf_model = bundle["rf_model"]
+    et_model = bundle["et_model"]
+    boost_model = bundle["boost_model"]
+
+    use_log_target = bundle.get("log_target", False)
+
+    # -----------------------------
+    # Convert input to DataFrame
+    # -----------------------------
+
+    df = pd.DataFrame([input_data])
+
+    df = clean_dataset(df)
+
+    X = preprocessor.transform(df)
+
+    # -----------------------------
+    # Individual predictions
+    # -----------------------------
+
+    rf_pred = rf_model.predict(X)[0]
+
+    et_pred = et_model.predict(X)[0]
+
+    boost_pred = boost_model.predict(X)[0]
+
+    # -----------------------------
+    # Weighted Ensemble
+    # -----------------------------
+
+    prediction = (
+        0.45 * rf_pred +
+        0.35 * et_pred +
+        0.20 * boost_pred
+    )
+
+    # -----------------------------
+    # Reverse Log Transform
+    # -----------------------------
+
+    if use_log_target:
+        prediction = np.expm1(prediction)
+
+    prediction = float(max(100.0, prediction))
+
+    # -----------------------------
+    # Total Production
+    # -----------------------------
+
+    area = float(input_data.get("area_hectares", 1))
+
+    total_production = (
+        prediction * area
+    ) / 1000
+
+    # -----------------------------
+    # Soil Evaluation
+    # -----------------------------
+
+    ph = float(input_data.get("soil_ph", 6.5))
+
+    n = float(input_data.get("nitrogen_n", 100))
+
+    p = float(input_data.get("phosphorus_p", 40))
+
+    k = float(input_data.get("potassium_k", 60))
+
+    soil_score = (
+        100
+        - abs(ph - 6.8) * 15
+        - max(0, 80 - n) * 0.3
+        - max(0, 30 - p) * 0.5
+    )
+
     soil_score = max(30, min(98, round(soil_score, 1)))
 
-    # Weather impact rating
-    weather_score = 100 - abs(temp - 24) * 2.5 - max(0, 500 - rainfall) * 0.05
-    weather_score = max(35, min(99, round(weather_score, 1)))
-    
-    # Productivity score
-    productivity_score = round(0.5 * soil_score + 0.5 * weather_score, 1)
+    # -----------------------------
+    # Weather Evaluation
+    # -----------------------------
 
-    # Risk Assessment & Advice
+    temp = float(input_data.get("temperature_celsius", 25))
+
+    rainfall = float(input_data.get("rainfall_mm", 800))
+
+    weather_score = (
+        100
+        - abs(temp - 24) * 2.5
+        - max(0, 500 - rainfall) * 0.05
+    )
+
+    weather_score = max(35, min(99, round(weather_score, 1)))
+
+    productivity = round(
+        (soil_score + weather_score) / 2,
+        1
+    )
+
+    # -----------------------------
+    # Risk Analysis
+    # -----------------------------
+
     risks = []
+
     recommendations = []
-    
+
     if ph < 6.0:
-        risks.append("Acidic soil detected which restricts nutrient absorption.")
-        recommendations.append("Apply agricultural lime (calcium carbonate) to increase soil pH towards 6.5-7.0.")
+
+        risks.append(
+            "Acidic soil may reduce nutrient availability."
+        )
+
+        recommendations.append(
+            "Apply agricultural lime."
+        )
+
     elif ph > 7.8:
-        risks.append("Alkaline soil detected which can cause iron/zinc deficiency.")
-        recommendations.append("Apply elemental sulfur or organic compost to lower soil pH.")
+
+        risks.append(
+            "Alkaline soil may reduce micronutrient uptake."
+        )
+
+        recommendations.append(
+            "Apply sulfur or organic compost."
+        )
 
     if n < 70:
-        recommendations.append("Top-dress with Nitrogen-rich fertilizer (Urea or Ammonium Nitrate).")
-    if rainfall < 500 and input_data.get('irrigation_type') == 'Rainfed':
-        risks.append("Below-average rainfall predicted without supplemental irrigation.")
-        recommendations.append("Consider installing drip or sprinkler irrigation to safeguard moisture levels.")
-    
-    if not risks:
-        risks.append("Optimal growing conditions detected with low climate/soil risk.")
-    if not recommendations:
-        recommendations.append("Maintain current nutrient application and monitor soil moisture weekly.")
+
+        recommendations.append(
+            "Increase Nitrogen fertilizer."
+        )
+
+    if (
+        rainfall < 500 and
+        input_data.get("irrigation_type") == "Rainfed"
+    ):
+
+        risks.append(
+            "Low rainfall without irrigation."
+        )
+
+        recommendations.append(
+            "Use drip or sprinkler irrigation."
+        )
+
+    if len(risks) == 0:
+
+        risks.append(
+            "No major agricultural risks detected."
+        )
+
+    if len(recommendations) == 0:
+
+        recommendations.append(
+            "Maintain current farming practices."
+        )
 
     return {
-        "predicted_yield_kg_ha": round(predicted_yield, 2),
-        "total_production_tonnes": total_production_tonnes,
-        "productivity_score": productivity_score,
+
+        "predicted_yield_kg_ha":
+            round(prediction, 2),
+
+        "total_production_tonnes":
+            round(total_production, 2),
+
+        "productivity_score":
+            productivity,
+
         "soil_health": {
+
             "score": soil_score,
-            "status": "Optimal" if soil_score > 75 else ("Fair" if soil_score > 55 else "Suboptimal"),
+
+            "status":
+                "Optimal"
+                if soil_score >= 75
+                else (
+                    "Fair"
+                    if soil_score >= 55
+                    else "Poor"
+                ),
+
             "ph": ph,
-            "npk_ratio": f"{n}:{p}:{k}"
+
+            "npk_ratio":
+                f"{n}:{p}:{k}"
+
         },
+
         "weather_impact": {
+
             "score": weather_score,
-            "status": "Favorable" if weather_score > 75 else "Moderate",
+
+            "status":
+                "Favorable"
+                if weather_score >= 75
+                else "Moderate",
+
             "temperature_celsius": temp,
+
             "rainfall_mm": rainfall
+
         },
-        "risk_assessment": risks,
-        "recommendations": recommendations,
-        "model_metrics": bundle.get('metrics', {})
+
+        "risk_assessment":
+            risks,
+
+        "recommendations":
+            recommendations,
+
+        "model_metrics":
+            bundle.get("metrics", {})
+
     }

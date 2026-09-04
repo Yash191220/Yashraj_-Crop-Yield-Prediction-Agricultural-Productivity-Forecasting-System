@@ -24,9 +24,8 @@ class Database:
                 cls._db = None
                 cls._client = None
 
-        # Try Atlas first, fallback to Local Mongo
         env_uri = os.getenv("MONGO_URI", ATLAS_URI)
-        uris_to_try = [ATLAS_URI, LOCAL_URI] if "mongodb.net" in env_uri else [LOCAL_URI, ATLAS_URI]
+        uris_to_try = [ATLAS_URI, env_uri, LOCAL_URI] if "mongodb.net" in env_uri else [ATLAS_URI, LOCAL_URI]
 
         for uri in uris_to_try:
             try:

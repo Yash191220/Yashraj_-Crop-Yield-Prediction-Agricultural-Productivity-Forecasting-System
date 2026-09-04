@@ -26,38 +26,8 @@ def hash_pwd(password: str) -> str:
 def verify_pwd(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
 
-USER_DB = {
-    "farmer@yieldsense.ai": {
-        "id": "usr_farmer_1",
-        "name": "Rajesh Kumar (Farmer)",
-        "email": "farmer@yieldsense.ai",
-        "role": "farmer",
-        "region": "North Region",
-        "password_hash": hash_pwd("farmer123"),
-        "status": "active",
-        "created_at": datetime.utcnow()
-    },
-    "agronomist@yieldsense.ai": {
-        "id": "usr_agro_1",
-        "name": "Dr. Sarah Jenkins (Agronomist)",
-        "email": "agronomist@yieldsense.ai",
-        "role": "agronomist",
-        "region": "Central Region",
-        "password_hash": hash_pwd("agro123"),
-        "status": "active",
-        "created_at": datetime.utcnow()
-    },
-    "admin@yieldsense.ai": {
-        "id": "usr_admin_1",
-        "name": "System Administrator",
-        "email": "admin@yieldsense.ai",
-        "role": "admin",
-        "region": "All Regions",
-        "password_hash": hash_pwd("admin123"),
-        "status": "active",
-        "created_at": datetime.utcnow()
-    }
-}
+USER_DB = {}
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -127,7 +97,7 @@ def register_user(user: UserRegister):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # Only allow valid roles; default unknown roles to farmer
-    allowed_roles = ["farmer", "agronomist", "admin"]
+    allowed_roles = ["farmer", "advisor", "agronomist", "admin"]
     assigned_role = user.role if user.role in allowed_roles else "farmer"
     
     user_record = {
@@ -142,20 +112,21 @@ def register_user(user: UserRegister):
         "created_at": datetime.utcnow()
     }
     
-    # Strictly Save to MongoDB Atlas
-    try:
-        res = db.users.insert_one(user_record.copy())
-        print(f"✅ User {user.email} saved to MongoDB Atlas yieldsense_ai.users collection. Inserted ID: {res.inserted_id}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save user to MongoDB Atlas: {str(e)}")
+    # Save to MongoDB Atlas & in-memory USER_DB
+    if db is not None:
+        try:
+            res = db.users.insert_one(user_record.copy())
+            print(f"✅ User {user.email} saved to MongoDB Atlas yieldsense_ai.users collection. Inserted ID: {res.inserted_id}")
+        except Exception as e:
+            print(f"⚠️ MongoDB write note: {e}")
             
     USER_DB[user.email] = user_record
 
-    # Pending farmers do NOT get a token — they must wait for approval
+    # Pending farmers do NOT get an immediate login token — they must wait for admin approval
     if user_record["status"] == "pending":
         raise HTTPException(
             status_code=202,
-            detail="Registration successful! Your account is pending admin approval. You will be able to login once approved."
+            detail="Registration submitted successfully! Your account is pending admin approval. You will be able to log in once approved by the administrator."
         )
 
     token = create_access_token({"sub": user.email, "role": user_record["role"]})
@@ -191,11 +162,11 @@ def login_user(credentials: UserLogin):
     requested_role = getattr(credentials, 'role', None)
     stored_role = user.get("role", "farmer")
     if requested_role and requested_role != stored_role:
-        role_label = "Admin" if stored_role == "admin" else "Farmer"
-        opposite = "Farmer" if stored_role == "admin" else "Admin"
+        role_labels = {"admin": "Admin", "advisor": "Advisor", "farmer": "Farmer", "agronomist": "Agronomist"}
+        role_label = role_labels.get(stored_role, stored_role.capitalize())
         raise HTTPException(
             status_code=403,
-            detail=f"🔒 This email is already registered as {role_label}. You cannot login as {opposite} with the same email. Please use a different email or login as {role_label}."
+            detail=f"🔒 This email is already registered as {role_label}. Please login using the {role_label} tab instead."
         )
 
     # Block pending accounts
