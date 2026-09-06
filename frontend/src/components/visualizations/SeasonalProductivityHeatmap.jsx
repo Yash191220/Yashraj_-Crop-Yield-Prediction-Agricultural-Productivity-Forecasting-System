@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { Calendar, Sparkles, AlertTriangle, CheckCircle2, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar } from 'lucide-react';
 
 export default function SeasonalProductivityHeatmap({
-  region = 'North Region',
-  onSelectCrop = () => {}
+  region = 'North Region'
 }) {
   const [activeSeason, setActiveSeason] = useState('All');
 
@@ -19,7 +18,8 @@ export default function SeasonalProductivityHeatmap({
     { crop: 'Potato', kharif: { yield: 0, score: 30, status: 'Not Recommended' }, rabi: { yield: 24.5, score: 96, status: 'Prime Crop' }, zaid: { yield: 14.0, score: 60, status: 'Early Summer' } }
   ];
 
-  const getScoreBadge = (score, status) => {
+  // eslint-disable-next-line no-unused-vars
+  const getScoreBadge = (score, _status) => {
     if (score >= 90) return 'bg-emerald-100 text-emerald-800 border-emerald-300 font-black';
     if (score >= 75) return 'bg-teal-100 text-teal-800 border-teal-300 font-bold';
     if (score >= 50) return 'bg-amber-100 text-amber-800 border-amber-300 font-semibold';

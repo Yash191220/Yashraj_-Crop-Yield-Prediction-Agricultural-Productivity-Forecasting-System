@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { loginUser, loginWithGoogle } from '../api';
 import RegisterPage from './RegisterPage';
 
@@ -20,7 +20,8 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
   const [adminKeyInput, setAdminKeyInput] = useState('');
   const [adminKeyError, setAdminKeyError] = useState('');
   const [adminKeyLoading, setAdminKeyLoading] = useState(false);
-  const [adminKeyDenied, setAdminKeyDenied] = useState(false);
+  // adminKeyDenied state kept for future admin key rejection UI
+  const [adminKeyDenied, setAdminKeyDenied] = useState(false); // eslint-disable-line no-unused-vars
   const adminKeyInputRef = useRef(null);
 
   useEffect(() => {
@@ -43,20 +44,7 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
     return () => window.removeEventListener('message', handlePopupMessage);
   }, []);
 
-  // Google Identity Services SDK
-  useEffect(() => {
-    /* global google */
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: '717140131417-client.apps.googleusercontent.com',
-          callback: handleGoogleCredentialResponse
-        });
-      } catch (err) {
-        console.log('Google Identity SDK Init:', err);
-      }
-    }
-  }, [selectedRole]);
+  // Note: Google SDK useEffect moved to after handleGoogleCredentialResponse declaration below
 
   const handleGoogleCredentialResponse = async (response) => {
     setLoading(true);
@@ -89,6 +77,23 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
       setLoading(false);
     }
   };
+
+  // Google Identity Services SDK initialization
+  // Placed here (after handleGoogleCredentialResponse is declared) to avoid TDZ errors
+  useEffect(() => {
+    /* global google */
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '717140131417-client.apps.googleusercontent.com',
+          callback: handleGoogleCredentialResponse
+        });
+      } catch (err) {
+        console.log('Google Identity SDK Init:', err);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRole]);
 
   const handleGoogleSignIn = async () => {
     setError('');

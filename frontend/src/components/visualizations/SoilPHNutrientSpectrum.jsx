@@ -1,9 +1,8 @@
-import React from 'react';
 import { FlaskConical, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function SoilPHNutrientSpectrum({
   soilPh = 6.8,
-  crop = 'Wheat'
+  crop: _crop = 'Wheat'
 }) {
   // Scientific nutrient availability percentages based on soil pH
   const calculateNutrientAvailability = (ph) => {

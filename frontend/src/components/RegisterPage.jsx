@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { registerUser } from '../api';
 
 const ADMIN_SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY || 'ADMIN@YIELDSENSE2024';

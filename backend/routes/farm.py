@@ -71,7 +71,7 @@ def delete_farm(farm_id: str, current_user: dict = Depends(get_current_user)):
 def update_farm(farm_id: str, farm_data: FarmUpdate, current_user: dict = Depends(get_current_user)):
     """UPDATE - Edit an existing farm's details"""
     db = get_database()
-    updated_fields = {k: v for k, v in farm_data.dict(exclude_unset=True).items() if v is not None}
+    updated_fields = {k: v for k, v in farm_data.model_dump(exclude_unset=True).items() if v is not None}
     updated_fields["updated_at"] = datetime.utcnow()
 
     if db is not None:

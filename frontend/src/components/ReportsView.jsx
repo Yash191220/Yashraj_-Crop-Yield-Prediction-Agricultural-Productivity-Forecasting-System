@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -65,6 +65,7 @@ export default function ReportsView({ user, onRunForecast }) {
 
   useEffect(() => {
     fetchReport();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeason, selectedRegion, areaHectares]);
 
   // Export CSV handler

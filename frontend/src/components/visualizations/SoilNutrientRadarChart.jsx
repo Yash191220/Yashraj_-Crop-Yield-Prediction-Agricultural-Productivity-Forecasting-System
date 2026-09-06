@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Radar,
   RadarChart,
@@ -8,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip
 } from 'recharts';
-import { FlaskConical, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+import { FlaskConical, Sparkles } from 'lucide-react';
 
 export default function SoilNutrientRadarChart({
   nitrogen = 140,

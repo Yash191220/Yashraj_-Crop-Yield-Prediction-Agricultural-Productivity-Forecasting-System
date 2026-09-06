@@ -65,6 +65,7 @@ export default function AdvisorDashboard({ user }) {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Layers, CheckCircle2, Clock, Droplets, AlertCircle } from 'lucide-react';
+import { Layers, Clock, Droplets } from 'lucide-react';
 
 export default function FertilizerSplitTimeline({
   crop = 'Wheat',

@@ -484,11 +484,13 @@ function RegionalRiskMatrix() {
       setLoaded(true);
     } catch (e) {
       console.error(e);
+      console.error('Failed to load matrix:', e);
     } finally {
       setLoading(false);
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadMatrix(); }, []);
 
   const getRiskColor = (indexStr) => {
@@ -588,7 +590,7 @@ export default function RiskAssessmentView({ user }) {
             });
           }
         }
-      } catch (_) {}
+      } catch (_) { /* silently ignore polling errors */ }
     };
     syncThread();
     const interval = setInterval(syncThread, 4000);
@@ -614,7 +616,7 @@ export default function RiskAssessmentView({ user }) {
         m === userMsg || (m.role === 'user' && m.content === userText && m.timestamp === ts)
           ? { ...m, sentToAdvisor: true } : m
       ));
-    } catch (_) {}
+    } catch (_) { /* silently ignore send errors */ }
   };
 
   const handleEvaluateRisk = async (e) => {

@@ -90,6 +90,125 @@ import {
   SeasonalProductivityHeatmap
 } from './components/visualizations';
 
+// Module-level constant (outside component) to avoid impure function calls during render
+const DEFAULT_INITIAL_LOGS = [
+  {
+    id: 'pred_001',
+    crop: 'Wheat',
+    region: 'North Region',
+    season: 'Rabi',
+    soil_type: 'Loamy',
+    irrigation_type: 'Canal',
+    area_hectares: 12.5,
+    rainfall_mm: 950.0,
+    temperature_celsius: 22.5,
+    soil_ph: 6.8,
+    nitrogen_n: 140.0,
+    phosphorus_p: 45.0,
+    potassium_k: 80.0,
+    predicted_yield_kg_ha: 3450.5,
+    total_production_tonnes: 43.13,
+    productivity_score: 92,
+    soil_health: { status: 'Optimal', score: 94 },
+    weather_impact: { risk_level: 'Low Risk' },
+    risk_assessment: ['Slight temperature variance during grain filling phase'],
+    recommendations: ['Apply 25 kg/ha Nitrogen top-dressing at tillering stage', 'Ensure drip irrigation during critical flowering window'],
+    created_at: '2026-09-06T11:16:00.000Z'
+  },
+  {
+    id: 'pred_002',
+    crop: 'Rice',
+    region: 'East Region',
+    season: 'Kharif',
+    soil_type: 'Clay',
+    irrigation_type: 'Canal',
+    area_hectares: 18.0,
+    rainfall_mm: 1250.0,
+    temperature_celsius: 28.0,
+    soil_ph: 6.2,
+    nitrogen_n: 160.0,
+    phosphorus_p: 50.0,
+    potassium_k: 90.0,
+    predicted_yield_kg_ha: 4280.0,
+    total_production_tonnes: 77.04,
+    productivity_score: 88,
+    soil_health: { status: 'Optimal', score: 90 },
+    weather_impact: { risk_level: 'Low Risk' },
+    risk_assessment: ['High humidity may increase sheath blight probability'],
+    recommendations: ['Maintain 5cm standing water level during panicle initiation', 'Apply balanced NPK fertilization'],
+    created_at: '2026-09-06T07:16:00.000Z'
+  },
+  {
+    id: 'pred_003',
+    crop: 'Maize',
+    region: 'Central Region',
+    season: 'Kharif',
+    soil_type: 'Black',
+    irrigation_type: 'Rainfed',
+    area_hectares: 15.0,
+    rainfall_mm: 880.0,
+    temperature_celsius: 26.5,
+    soil_ph: 7.1,
+    nitrogen_n: 130.0,
+    phosphorus_p: 40.0,
+    potassium_k: 75.0,
+    predicted_yield_kg_ha: 4920.0,
+    total_production_tonnes: 73.80,
+    productivity_score: 95,
+    soil_health: { status: 'Optimal', score: 96 },
+    weather_impact: { risk_level: 'Low Risk' },
+    risk_assessment: ['Potential dry spell during silk formation'],
+    recommendations: ['Incorporate organic compost to enhance water retention'],
+    created_at: '2026-09-06T01:16:00.000Z'
+  },
+  {
+    id: 'pred_004',
+    crop: 'Soybean',
+    region: 'West Region',
+    season: 'Kharif',
+    soil_type: 'Red',
+    irrigation_type: 'Rainfed',
+    area_hectares: 10.0,
+    rainfall_mm: 720.0,
+    temperature_celsius: 25.0,
+    soil_ph: 5.8,
+    nitrogen_n: 90.0,
+    phosphorus_p: 35.0,
+    potassium_k: 60.0,
+    predicted_yield_kg_ha: 2680.0,
+    total_production_tonnes: 26.80,
+    productivity_score: 79,
+    soil_health: { status: 'Suboptimal', score: 72 },
+    weather_impact: { risk_level: 'Moderate Risk' },
+    risk_assessment: ['Low phosphorus levels and acidic soil pH (5.8) limiting nodulation'],
+    recommendations: ['Apply agricultural lime (500 kg/ha) to elevate soil pH to 6.5', 'Inoculate seed with Rhizobium biofertilizer'],
+    created_at: '2026-09-05T13:16:00.000Z'
+  },
+  {
+    id: 'pred_005',
+    crop: 'Potato',
+    region: 'North Region',
+    season: 'Rabi',
+    soil_type: 'Loamy',
+    irrigation_type: 'Sprinkler',
+    area_hectares: 8.5,
+    rainfall_mm: 650.0,
+    temperature_celsius: 18.5,
+    soil_ph: 6.5,
+    nitrogen_n: 150.0,
+    phosphorus_p: 60.0,
+    potassium_k: 120.0,
+    predicted_yield_kg_ha: 18500.0,
+    total_production_tonnes: 157.25,
+    productivity_score: 94,
+    soil_health: { status: 'Optimal', score: 95 },
+    weather_impact: { risk_level: 'Low Risk' },
+    risk_assessment: ['Cool temperatures ideal for tuber enlargement'],
+    recommendations: ['Earthing up soil around plants at 30 days after planting', 'Fungicidal spray prevention against late blight'],
+    created_at: '2026-09-04T23:16:00.000Z'
+  }
+];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('login');
   const [user, setUser] = useState(null);
@@ -141,123 +260,7 @@ export default function App() {
   const [cropRankResult, setCropRankResult] = useState(null);
   const [cropRankLoading, setCropRankLoading] = useState(false);
   const [predLoading, setPredLoading] = useState(false);
-  const DEFAULT_INITIAL_LOGS = [
-    {
-      id: 'pred_001',
-      crop: 'Wheat',
-      region: 'North Region',
-      season: 'Rabi',
-      soil_type: 'Loamy',
-      irrigation_type: 'Canal',
-      area_hectares: 12.5,
-      rainfall_mm: 950.0,
-      temperature_celsius: 22.5,
-      soil_ph: 6.8,
-      nitrogen_n: 140.0,
-      phosphorus_p: 45.0,
-      potassium_k: 80.0,
-      predicted_yield_kg_ha: 3450.5,
-      total_production_tonnes: 43.13,
-      productivity_score: 92,
-      soil_health: { status: 'Optimal', score: 94 },
-      weather_impact: { risk_level: 'Low Risk' },
-      risk_assessment: ['Slight temperature variance during grain filling phase'],
-      recommendations: ['Apply 25 kg/ha Nitrogen top-dressing at tillering stage', 'Ensure drip irrigation during critical flowering window'],
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString()
-    },
-    {
-      id: 'pred_002',
-      crop: 'Rice',
-      region: 'East Region',
-      season: 'Kharif',
-      soil_type: 'Clay',
-      irrigation_type: 'Canal',
-      area_hectares: 18.0,
-      rainfall_mm: 1250.0,
-      temperature_celsius: 28.0,
-      soil_ph: 6.2,
-      nitrogen_n: 160.0,
-      phosphorus_p: 50.0,
-      potassium_k: 90.0,
-      predicted_yield_kg_ha: 4280.0,
-      total_production_tonnes: 77.04,
-      productivity_score: 88,
-      soil_health: { status: 'Optimal', score: 90 },
-      weather_impact: { risk_level: 'Low Risk' },
-      risk_assessment: ['High humidity may increase sheath blight probability'],
-      recommendations: ['Maintain 5cm standing water level during panicle initiation', 'Apply balanced NPK fertilization'],
-      created_at: new Date(Date.now() - 3600000 * 6).toISOString()
-    },
-    {
-      id: 'pred_003',
-      crop: 'Maize',
-      region: 'Central Region',
-      season: 'Kharif',
-      soil_type: 'Black',
-      irrigation_type: 'Rainfed',
-      area_hectares: 15.0,
-      rainfall_mm: 880.0,
-      temperature_celsius: 26.5,
-      soil_ph: 7.1,
-      nitrogen_n: 130.0,
-      phosphorus_p: 40.0,
-      potassium_k: 75.0,
-      predicted_yield_kg_ha: 4920.0,
-      total_production_tonnes: 73.80,
-      productivity_score: 95,
-      soil_health: { status: 'Optimal', score: 96 },
-      weather_impact: { risk_level: 'Low Risk' },
-      risk_assessment: ['Potential dry spell during silk formation'],
-      recommendations: ['Incorporate organic compost to enhance water retention'],
-      created_at: new Date(Date.now() - 3600000 * 12).toISOString()
-    },
-    {
-      id: 'pred_004',
-      crop: 'Soybean',
-      region: 'West Region',
-      season: 'Kharif',
-      soil_type: 'Red',
-      irrigation_type: 'Rainfed',
-      area_hectares: 10.0,
-      rainfall_mm: 720.0,
-      temperature_celsius: 25.0,
-      soil_ph: 5.8,
-      nitrogen_n: 90.0,
-      phosphorus_p: 35.0,
-      potassium_k: 60.0,
-      predicted_yield_kg_ha: 2680.0,
-      total_production_tonnes: 26.80,
-      productivity_score: 79,
-      soil_health: { status: 'Suboptimal', score: 72 },
-      weather_impact: { risk_level: 'Moderate Risk' },
-      risk_assessment: ['Low phosphorus levels and acidic soil pH (5.8) limiting nodulation'],
-      recommendations: ['Apply agricultural lime (500 kg/ha) to elevate soil pH to 6.5', 'Inoculate seed with Rhizobium biofertilizer'],
-      created_at: new Date(Date.now() - 3600000 * 24).toISOString()
-    },
-    {
-      id: 'pred_005',
-      crop: 'Potato',
-      region: 'North Region',
-      season: 'Rabi',
-      soil_type: 'Loamy',
-      irrigation_type: 'Sprinkler',
-      area_hectares: 8.5,
-      rainfall_mm: 650.0,
-      temperature_celsius: 18.5,
-      soil_ph: 6.5,
-      nitrogen_n: 150.0,
-      phosphorus_p: 60.0,
-      potassium_k: 120.0,
-      predicted_yield_kg_ha: 18500.0,
-      total_production_tonnes: 157.25,
-      productivity_score: 94,
-      soil_health: { status: 'Optimal', score: 95 },
-      weather_impact: { risk_level: 'Low Risk' },
-      risk_assessment: ['Cool temperatures ideal for tuber enlargement'],
-      recommendations: ['Earthing up soil around plants at 30 days after planting', 'Fungicidal spray prevention against late blight'],
-      created_at: new Date(Date.now() - 3600000 * 36).toISOString()
-    }
-  ];
+  // DEFAULT_INITIAL_LOGS is defined at module scope above the component
 
   const [predictionHistory, setPredictionHistory] = useState([]);
   const [searchLogQuery, setSearchLogQuery] = useState('');
@@ -394,20 +397,7 @@ export default function App() {
   });
   const [recResult, setRecResult] = useState(null);
 
-  useEffect(() => {
-    fetchProfile();
-    fetchHistory();
-    fetchFarmList();
-  }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchHistory();
-      if (user.role === 'admin') {
-        fetchPendingUsers();
-      }
-    }
-  }, [user?.id, activeTab]);
+  // Note: useEffect hooks are placed after function declarations to avoid 'used before declared' errors
 
   const getRoleRedirectTab = (role) => {
     if (role === 'admin') return 'adminpanel';
@@ -472,6 +462,25 @@ export default function App() {
       console.error('Admin stats fetch:', err);
     }
   };
+
+  // ── Initial data load & user-change effects ───────────────────────────────
+  // Placed here (after all fetch functions are declared) to avoid TDZ errors
+  useEffect(() => {
+    fetchProfile();
+    fetchHistory();
+    fetchFarmList();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchHistory();
+      if (user.role === 'admin') {
+        fetchPendingUsers();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, activeTab]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

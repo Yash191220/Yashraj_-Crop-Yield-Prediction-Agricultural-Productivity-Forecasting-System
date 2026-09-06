@@ -23,7 +23,7 @@ def get_user_profile(current_user: dict = Depends(get_current_user)):
 def update_user_profile(update_data: UserUpdate, current_user: dict = Depends(get_current_user)):
     """UPDATE - Update user's name and/or region"""
     db = get_database()
-    updated_fields = {k: v for k, v in update_data.dict().items() if v is not None}
+    updated_fields = {k: v for k, v in update_data.model_dump().items() if v is not None}
 
     if not updated_fields:
         raise HTTPException(status_code=400, detail="No fields provided to update")
