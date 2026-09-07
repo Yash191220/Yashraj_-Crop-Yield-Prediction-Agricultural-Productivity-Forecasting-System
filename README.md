@@ -1,13 +1,13 @@
-# 🌱 Crop Yield Prediction & Agricultural Advisory System (YieldSense AI)
+# Crop Yield Prediction & Agricultural Advisory System (YieldSense AI)
 
 A modern, full-stack AI platform that helps farmers and agricultural planners forecast crop yields, assess environmental risks, and receive personalized agronomic advice based on soil, weather, and farm conditions.
 
-> 📖 **Full Master Project Documentation**: [docs/PROJECT_DOCUMENTATION.md](file:///Users/yashraj_1920/Desktop/CropYield/docs/PROJECT_DOCUMENTATION.md)  
-> 📊 **Productivity & Seasonal Report**: [YieldSense_Productivity_and_Seasonal_Report.md](file:///Users/yashraj_1920/Desktop/CropYield/YieldSense_Productivity_and_Seasonal_Report.md)
+> **Full Master Project Documentation**: [docs/PROJECT_DOCUMENTATION.md](file:///Users/yashraj_1920/Desktop/CropYield/docs/PROJECT_DOCUMENTATION.md)  
+> **Productivity & Seasonal Report**: [YieldSense_Productivity_and_Seasonal_Report.md](file:///Users/yashraj_1920/Desktop/CropYield/YieldSense_Productivity_and_Seasonal_Report.md)
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 Predicting crop yield before harvest helps farmers choose the right crops, plan fertilizers, and reduce financial risk. **YieldSense AI** takes field conditions (soil NPK, pH, rainfall, temperature, humidity, farm size) and delivers:
 1. **Accurate Yield Predictions** (in kg/ha and total tonnes) using an ML Ensemble model.
@@ -17,22 +17,22 @@ Predicting crop yield before harvest helps farmers choose the right crops, plan 
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-- **🌾 AI Yield Forecasting**: Predicts expected harvest (kg/ha and total metric tonnes) in real-time.
-- **🏆 Crop Recommendation**: Automatically runs the model across all 8 crops (Wheat, Rice, Maize, Soybean, Cotton, Barley, Sugarcane, Potato) to highlight the most profitable choice.
-- **🧪 Soil Health Index**: Analyzes Nitrogen (N), Phosphorus (P), Potassium (K), pH, and Organic Matter with actionable improvement suggestions.
-- **🛡️ Multi-Risk Assessment**: Evaluates Drought, Heatwave, Flood/Excess Rain, Pest, and Soil Degradation risks with risk level badges and financial Value-at-Risk (VaR).
-- **💡 Agricultural Advisory**:
+- **AI Yield Forecasting**: Predicts expected harvest (kg/ha and total metric tonnes) in real-time.
+- **Crop Recommendation**: Automatically runs the model across all 8 crops (Wheat, Rice, Maize, Soybean, Cotton, Barley, Sugarcane, Potato) to highlight the most profitable choice.
+- **Soil Health Index**: Analyzes Nitrogen (N), Phosphorus (P), Potassium (K), pH, and Organic Matter with actionable improvement suggestions.
+- **Multi-Risk Assessment**: Evaluates Drought, Heatwave, Flood/Excess Rain, Pest, and Soil Degradation risks with risk level badges and financial Value-at-Risk (VaR).
+- **Agricultural Advisory**:
   - Fertilizer Split Timeline (Basal, Vegetative, Flowering stages)
   - Irrigation Scheduling (Weekly water requirements & methods)
   - Pest Defense Strategy & Crop Rotation recommendations
-- **📊 Interactive Dashboard**: Visualizes yield comparisons, baseline benchmarks, and historical records with CSV export.
-- **🔐 Secure User & Admin Portal**: Role-based access (Farmer & Admin), JWT authentication, and farm profile management.
+- **Interactive Dashboard**: Visualizes yield comparisons, baseline benchmarks, and historical records with CSV export.
+- **Secure User & Admin Portal**: Role-based access (Farmer & Admin), JWT authentication, and farm profile management.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technology | Purpose |
 |---|---|---|
@@ -45,7 +45,7 @@ Predicting crop yield before harvest helps farmers choose the right crops, plan 
 
 ---
 
-## 🧠 Machine Learning Pipeline
+## Machine Learning Pipeline
 
 Our model uses an ensemble of 3 distinct algorithms for high accuracy and robust generalization:
 
@@ -75,7 +75,7 @@ Our model uses an ensemble of 3 distinct algorithms for high accuracy and robust
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 CropYield/
@@ -102,7 +102,7 @@ CropYield/
 
 ---
 
-## ⚡ Quick Start Guide
+## Quick Start Guide
 
 ### Prerequisites
 - Python 3.10 or higher
@@ -144,7 +144,7 @@ Web application will be accessible at `http://localhost:5173`
 
 ---
 
-## 📋 API Summary
+## API Summary
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -159,7 +159,7 @@ Web application will be accessible at `http://localhost:5173`
 
 ---
 
-## 👥 Authors & Acknowledgments
+## Authors & Acknowledgments
 
 - **Developer**: Yashraj
 - **Project**: Agricultural Productivity Forecasting & Advisory System (YieldSense AI)

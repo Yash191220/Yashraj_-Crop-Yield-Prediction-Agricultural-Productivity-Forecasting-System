@@ -1,4 +1,4 @@
-# 🌾 YieldSense AI: Agricultural Productivity Forecasting & Advisory System
+# YieldSense AI: Agricultural Productivity Forecasting & Advisory System
 ## Comprehensive Master Project Documentation
 
 | Field | Details |
@@ -13,7 +13,7 @@
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
 2. [Problem Statement & Motivation](#2-problem-statement--motivation)
