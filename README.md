@@ -2,6 +2,9 @@
 
 A modern, full-stack AI platform that helps farmers and agricultural planners forecast crop yields, assess environmental risks, and receive personalized agronomic advice based on soil, weather, and farm conditions.
 
+> 📖 **Full Master Project Documentation**: [docs/PROJECT_DOCUMENTATION.md](file:///Users/yashraj_1920/Desktop/CropYield/docs/PROJECT_DOCUMENTATION.md)  
+> 📊 **Productivity & Seasonal Report**: [YieldSense_Productivity_and_Seasonal_Report.md](file:///Users/yashraj_1920/Desktop/CropYield/YieldSense_Productivity_and_Seasonal_Report.md)
+
 ---
 
 ## 📌 Project Overview
