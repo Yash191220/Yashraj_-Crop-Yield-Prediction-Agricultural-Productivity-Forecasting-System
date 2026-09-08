@@ -161,12 +161,12 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
           }
         }, 500);
       } else {
-        setGoogleCustomEmail(selectedRole === 'admin' ? 'admin.google@yieldsense.ai' : 'farmer.google@gmail.com');
+        setGoogleCustomEmail('');
         setShowGoogleModal(true);
       }
     } catch (err) {
       if (popup && !popup.closed) popup.close();
-      setGoogleCustomEmail(selectedRole === 'admin' ? 'admin.google@yieldsense.ai' : 'farmer.google@gmail.com');
+      setGoogleCustomEmail('');
       setShowGoogleModal(true);
     } finally {
       setLoading(false);
@@ -174,7 +174,8 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
   };
 
   const handleGoogleAccountSelect = async (customEmail) => {
-    const targetEmail = customEmail || googleCustomEmail || (selectedRole === 'admin' ? 'admin.google@yieldsense.ai' : 'farmer.google@gmail.com');
+    const targetEmail = customEmail || googleCustomEmail;
+    if (!targetEmail) return;
     const name = targetEmail.split('@')[0].replace('.', ' ');
     setShowGoogleModal(false);
     setLoading(true);
@@ -380,36 +381,23 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handleGoogleAccountSelect(selectedRole === 'admin' ? 'admin.google@yieldsense.ai' : 'farmer.google@gmail.com')}
-              className="w-full p-3 rounded-xl border border-slate-200 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/50 text-left transition cursor-pointer"
-            >
-              <p className="text-xs font-bold text-slate-900">
-                {selectedRole === 'admin' ? 'System Administrator' : 'Primary Farmer Account'}
-              </p>
-              <p className="text-[11px] text-slate-500">
-                {selectedRole === 'admin' ? 'admin.google@yieldsense.ai' : 'farmer.google@gmail.com'}
-              </p>
-            </button>
-
-            <div className="pt-2 border-t border-slate-100 space-y-2">
-              <label className="text-[11px] font-semibold text-slate-600">Or Enter Custom Google Email</label>
+            <div className="space-y-3 pt-2">
+              <label className="text-xs font-semibold text-slate-700">Enter your Google Email Address</label>
               <div className="flex gap-2">
                 <input
                   type="email"
-                  placeholder="your.email@gmail.com"
+                  placeholder="your.name@gmail.com"
                   value={googleCustomEmail}
                   onChange={(e) => setGoogleCustomEmail(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
+                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
                 />
                 <button
                   type="button"
                   onClick={() => handleGoogleAccountSelect(googleCustomEmail)}
                   disabled={!googleCustomEmail.includes('@')}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition cursor-pointer"
                 >
-                  Continue
+                  Sign In
                 </button>
               </div>
             </div>

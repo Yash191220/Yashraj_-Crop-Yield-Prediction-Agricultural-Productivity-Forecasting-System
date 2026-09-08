@@ -2921,26 +2921,6 @@ export default function App() {
               <p className="text-xs text-slate-500">Sign in to access your agricultural dashboard</p>
             </div>
 
-            {/* Quick Demo Shortcuts (Farmer & Admin Only) */}
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Quick Login Credentials:</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('farmer@yieldsense.ai', 'farmer123')}
-                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold py-2 rounded-xl border border-emerald-300 transition flex items-center justify-center space-x-1"
-                >
-                  <span>Farmer Sign In</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('admin@yieldsense.ai', 'admin123')}
-                  className="bg-purple-100 hover:bg-purple-200 text-purple-800 text-[11px] font-bold py-2 rounded-xl border border-purple-300 transition flex items-center justify-center space-x-1"
-                >
-                  <span>Admin Sign In</span>
-                </button>
-              </div>
-            </div>
 
             {/* Google Direct Sign In Button */}
             <div>
@@ -2993,7 +2973,7 @@ export default function App() {
                   <input
                     type="email"
                     required
-                    placeholder="farmer@yieldsense.ai or admin@yieldsense.ai"
+                    placeholder="name@example.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 mt-1 focus:outline-none focus:border-emerald-600 text-xs"

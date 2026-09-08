@@ -28,6 +28,12 @@ def get_pending_users(current_user: dict = Depends(require_roles(["admin"]))):
             if u.get("status") == "pending"
         ]
 
+    # Exclude any automated test or demo emails
+    pending = [
+        u for u in pending
+        if not any(x in u.get("email", "").lower() for x in ["postman", "test@", "demo@"])
+    ]
+
     # Serialize datetime fields
     for u in pending:
         if isinstance(u.get("created_at"), datetime):
@@ -137,6 +143,12 @@ def get_all_users(current_user: dict = Depends(require_roles(["admin"]))):
             {k: v for k, v in u.items() if k != "password_hash"}
             for u in USER_DB.values()
         ]
+
+    # Exclude any automated test or demo emails
+    users = [
+        u for u in users
+        if not any(x in u.get("email", "").lower() for x in ["postman", "test@", "demo@"])
+    ]
 
     for u in users:
         if isinstance(u.get("created_at"), datetime):

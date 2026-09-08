@@ -167,7 +167,7 @@ export default function AdvisorDashboard({ user }) {
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-medium flex-wrap">
               <span className="flex items-center gap-1">
                 <Mail className="w-3.5 h-3.5 text-slate-400" />
-                {user?.email || 'advisor@yieldsense.ai'}
+                {user?.email || 'advisor@agri-network.org'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
