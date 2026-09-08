@@ -1,0 +1,672 @@
+{
+  "info": {
+    "_postman_id": "8f3b4a2c-1d5e-4c7b-9a8f-2e3d4c5b6a7e",
+    "name": "YieldSense AI - Complete API Test Suite",
+    "description": "Comprehensive Postman API Test Suite for YieldSense AI: Crop Yield Prediction & Agricultural Productivity Forecasting System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. System Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Service is healthy\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"healthy\");",
+                  "    pm.expect(jsonData.service).to.eql(\"yieldsense-backend\");",
+                  "});",
+                  "pm.test(\"Response time is under 500ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "System Root Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Engine status is online\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"online\");",
+                  "    pm.expect(jsonData.app).to.include(\"YieldSense\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication & Authorization",
+      "item": [
+        {
+          "name": "Register Farmer Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Registration response valid (200, 201, 202 Accepted, or 400 Already Registered)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 400]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Postman Test Farmer\", \"email\": \"postman_farmer@yieldsense.ai\", \"password\": \"SecurePassword123!\", \"role\": \"farmer\", \"region\": \"North Region\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login User & Extract JWT Bearer Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"JWT access token received and stored in environment\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.access_token).to.not.be.empty;",
+                  "    pm.expect(jsonData.token_type).to.eql(\"bearer\");",
+                  "    pm.environment.set(\"auth_token\", jsonData.access_token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{admin_email}}\", \"password\": \"{{admin_password}}\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Authenticated User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Valid user profile returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.email).to.exist;",
+                  "    pm.expect(jsonData.role).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. AI Crop Yield Prediction & Recommendations",
+      "item": [
+        {
+          "name": "Predict Crop Yield (Ensemble Inference)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Yield prediction values are valid\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.predicted_yield_kg_ha).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.predicted_yield_kg_ha).to.be.above(0);",
+                  "    pm.expect(jsonData.total_production_tonnes).to.be.above(0);",
+                  "    pm.expect(jsonData.productivity_score).to.be.within(0, 100);",
+                  "});",
+                  "pm.test(\"Soil & Weather impact sub-reports included\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.soil_health).to.exist;",
+                  "    pm.expect(jsonData.weather_impact).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"crop\": \"Wheat\", \"region\": \"North Region\", \"season\": \"Rabi\", \"soil_type\": \"Loamy\", \"irrigation_type\": \"Canal\", \"area_hectares\": 10.0, \"rainfall_mm\": 850.0, \"temperature_celsius\": 22.0, \"humidity_percent\": 65.0, \"soil_ph\": 6.8, \"nitrogen_n\": 140.0, \"phosphorus_p\": 45.0, \"potassium_k\": 80.0, \"organic_matter_percent\": 2.5}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/prediction/predict",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "prediction",
+                "predict"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Compare & Recommend Crops (8 Cultivars)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns crop recommendations list\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.recommendations).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.recommendations.length).to.be.at.least(5);",
+                  "    pm.expect(jsonData.recommendations[0].crop).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"crop\": \"Wheat\", \"region\": \"North Region\", \"season\": \"Rabi\", \"soil_type\": \"Loamy\", \"irrigation_type\": \"Canal\", \"area_hectares\": 10.0, \"rainfall_mm\": 850.0, \"temperature_celsius\": 22.0, \"humidity_percent\": 65.0, \"soil_ph\": 6.8, \"nitrogen_n\": 140.0, \"phosphorus_p\": 45.0, \"potassium_k\": 80.0}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/prediction/crop-recommend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "prediction",
+                "crop-recommend"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fetch Prediction History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns an array of records\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/prediction/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "prediction",
+                "history"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Soil & Weather Analytics",
+      "item": [
+        {
+          "name": "Soil Health & Nutrient Assessment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Soil metrics calculated properly\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.soil_health_score).to.be.within(0, 100);",
+                  "    pm.expect(jsonData.fertility_status).to.be.oneOf([\"Optimal\", \"Fair\", \"Suboptimal\"]);",
+                  "    pm.expect(jsonData.recommended_fertilizers).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"region\": \"North Region\", \"soil_type\": \"Loamy\", \"soil_ph\": 6.8, \"nitrogen_n\": 120.0, \"phosphorus_p\": 40.0, \"potassium_k\": 70.0, \"organic_matter_percent\": 2.5}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/soil/assess",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "soil",
+                "assess"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Weather Risk & Climate Analysis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Weather values and drought risk returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.rainfall_mm).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.temperature_celsius).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.drought_risk).to.be.oneOf([\"Low\", \"Moderate\", \"Severe\"]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"region\": \"North Region\", \"rainfall_mm\": 950.0, \"temperature_celsius\": 22.5, \"humidity_percent\": 65.0}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/weather/analyze",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "weather",
+                "analyze"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Multi-Risk Engine & Reports",
+      "item": [
+        {
+          "name": "Evaluate Multi-Risk & Value-at-Risk (VaR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Composite risk index returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.data.composite_risk_score).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.data.risk_level).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"crop\": \"Wheat\", \"region\": \"North Region\", \"season\": \"Rabi\", \"soil_type\": \"Loamy\", \"soil_ph\": 6.8, \"nitrogen_n\": 120.0, \"phosphorus_p\": 40.0, \"potassium_k\": 60.0, \"rainfall_mm\": 650.0, \"temperature_celsius\": 24.0, \"irrigation_type\": \"Canal\", \"area_hectares\": 10.0, \"has_crop_insurance\": true, \"insurance_coverage_percent\": 75.0}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/risk/evaluate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "risk",
+                "evaluate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Regional Risk Matrix",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns regional risk matrix data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.matrix).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/risk/regional-matrix",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "risk",
+                "regional-matrix"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Seasonal Productivity Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns productivity summary & seasonal benchmarks\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.kpis).to.exist;",
+                  "    pm.expect(jsonData.season_comparison).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/productivity-seasonal",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "productivity-seasonal"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Farm Profile Management",
+      "item": [
+        {
+          "name": "Create Farm Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Farm profile successfully created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.not.be.empty;",
+                  "    pm.expect(jsonData.farm_name).to.eql(\"Sunrise Precision Acres\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"farm_name\": \"Sunrise Precision Acres\", \"region\": \"North Region\", \"area_hectares\": 15.5, \"soil_type\": \"Loamy\", \"irrigation_type\": \"Drip\", \"primary_crops\": [\"Wheat\", \"Barley\"]}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/farm/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "farm",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List User Farms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns array of farms\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/farm/list",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "farm",
+                "list"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
