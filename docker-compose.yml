@@ -9,9 +9,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - DB_NAME=cropyield
-      - JWT_SECRET_KEY=YIELDSENSE_PROD_SECRET_KEY_2026
+      - MONGO_URI=mongodb+srv://yashraj191220_db_user:S6fQWhT99rohAkli@cropyiled.slmdhrd.mongodb.net/yieldsense_ai?retryWrites=true&w=majority
+      - DATABASE_NAME=yieldsense_ai
+      - JWT_SECRET=yieldsense_secret_key_2026_super_secure
+      - ADMIN_SECRET_KEY=ADMIN@YIELDSENSE2024
     depends_on:
       - mongodb
     restart: unless-stopped
