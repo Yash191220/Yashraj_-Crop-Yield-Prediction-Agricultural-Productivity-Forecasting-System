@@ -1,0 +1,33 @@
+services:
+  # ─── BACKEND FASTAPI WEB SERVICE (FREE TIER) ──────────────────────────────
+  - type: web
+    name: yieldsense-backend
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: MONGO_URI
+        value: mongodb+srv://yashraj191220_db_user:S6fQWhT99rohAkli@cropyiled.slmdhrd.mongodb.net/yieldsense_ai?retryWrites=true&w=majority
+      - key: DATABASE_NAME
+        value: yieldsense_ai
+      - key: JWT_SECRET
+        value: yieldsense_secret_key_2026_super_secure
+      - key: ADMIN_SECRET_KEY
+        value: ADMIN@YIELDSENSE2024
+      - key: ALLOWED_ORIGINS
+        value: "*"
+
+  # ─── FRONTEND REACT STATIC SITE (FREE TIER) ───────────────────────────────
+  - type: web
+    name: yieldsense-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    region: oregon
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
