@@ -55,6 +55,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             try:
                 db_user = db.users.find_one({"email": email})
                 if db_user:
+                    if "id" not in db_user:
+                        db_user["id"] = str(db_user.get("_id") or f"usr_{abs(hash(email)) % 100000}")
                     return db_user
             except Exception as db_err:
                 print(f"⚠️ MongoDB query warning in get_current_user: {db_err}")

@@ -502,6 +502,7 @@ export default function App() {
   useEffect(() => {
     if (user?.id) {
       fetchHistory();
+      fetchFarmList();
       if (user.role === 'admin') {
         fetchPendingUsers();
       }
@@ -648,19 +649,19 @@ export default function App() {
       .filter(a => a.crop && a.crop.trim().length > 0)
       .map(a => ({
         crop: a.crop.trim(),
-        area_hectares: parseFloat(a.area_hectares) || 0
+        area_hectares: Math.max(0.1, parseFloat(a.area_hectares) || 0.1)
       }));
 
     const calculatedArea = validAllocations.length > 0
       ? Math.round(validAllocations.reduce((sum, a) => sum + a.area_hectares, 0) * 10) / 10
-      : (parseFloat(newFarm.area_hectares) || 10.0);
+      : Math.max(0.1, parseFloat(newFarm.area_hectares) || 10.0);
 
     const cropsList = validAllocations.length > 0
       ? validAllocations.map(a => a.crop)
-      : (newFarm.primary_crops || ['Wheat']);
+      : (newFarm.primary_crops?.length > 0 ? newFarm.primary_crops : ['Wheat']);
 
     const payload = {
-      farm_name: newFarm.farm_name || 'My New Field Parcel',
+      farm_name: newFarm.farm_name?.trim() || 'My New Field Parcel',
       region: newFarm.region || 'North Region',
       area_hectares: calculatedArea,
       soil_type: newFarm.soil_type || 'Loamy',
@@ -677,9 +678,22 @@ export default function App() {
     };
 
     try {
-      await createFarm(payload);
-      setFarms(prev => [tempFarm, ...prev.filter(f => f.id !== tempFarm.id)]);
+      const created = await createFarm(payload);
+      const savedFarm = created && created.id ? created : tempFarm;
+      setFarms(prev => [savedFarm, ...prev.filter(f => f.id !== savedFarm.id)]);
       setShowAddFarmModal(false);
+      setNewFarm({
+        farm_name: '',
+        region: 'North Region',
+        area_hectares: 10.0,
+        soil_type: 'Loamy',
+        irrigation_type: 'Drip',
+        crop_allocations: [
+          { crop: 'Wheat', area_hectares: 6.0 },
+          { crop: 'Rice', area_hectares: 4.0 }
+        ],
+        primary_crops: ['Wheat', 'Rice']
+      });
       fetchFarmList();
     } catch (err) {
       console.warn('Backend create farm notice, using local state:', err);
@@ -883,6 +897,19 @@ export default function App() {
     );
   }
 
+  const currentRole = user?.role || 'farmer';
+  const navTabs = [
+    { id: 'advisorhub', label: 'Consultation Desk', roles: ['advisor', 'agronomist'] },
+    { id: 'dashboard',  label: 'Dashboard',         roles: ['farmer', 'admin'] },
+    { id: 'forecast',   label: 'Yield Forecast',    roles: ['farmer', 'admin'] },
+    { id: 'analysis',   label: 'Soil & Weather',    roles: ['farmer', 'admin'] },
+    { id: 'risk',       label: 'Risk Assessment',   roles: ['farmer', 'admin'] },
+    { id: 'reports',    label: 'Reports',           roles: ['farmer', 'admin'] },
+    { id: 'farms',      label: 'My Fields',         roles: ['farmer', 'admin', 'advisor', 'agronomist'] },
+    { id: 'advisory',   label: 'Advisory',          roles: ['farmer', 'admin'] },
+    { id: 'adminpanel', label: 'Admin Panel',       roles: ['admin'] },
+  ].filter(t => t.roles.includes(currentRole));
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       {/* ─── iOS 26-STYLE LIQUID GLASS FLOATING NAVBAR ─────────────────────── */}
@@ -937,66 +964,50 @@ export default function App() {
           {/* ── NAV + USER CONTROL (grouped right side) ─── */}
           <div className="flex items-center gap-1.5">
             <nav className="hidden md:flex items-center gap-0.5 overflow-x-auto scrollbar-none">
-              {(() => {
-                const currentRole = user?.role || 'farmer';
-                const isAdmin = currentRole === 'admin';
-                const navTabs = [
-                  { id: 'advisorhub', label: 'Consultation Desk', roles: ['advisor', 'agronomist'] },
-                  { id: 'dashboard',  label: 'Dashboard',         roles: ['farmer', 'admin'] },
-                  { id: 'forecast',   label: 'Yield Forecast',    roles: ['farmer', 'admin'] },
-                  { id: 'analysis',   label: 'Soil & Weather',    roles: ['farmer', 'admin'] },
-                  { id: 'risk',       label: 'Risk Assessment',   roles: ['farmer', 'admin'] },
-                  { id: 'reports',    label: 'Reports',           roles: ['farmer', 'admin'] },
-                  { id: 'farms',      label: 'My Fields',         roles: ['farmer'] },
-                  { id: 'advisory',   label: 'Advisory',          roles: ['farmer', 'admin'] },
-                  { id: 'adminpanel', label: 'Admin Panel',       roles: ['admin'] },
-                ].filter(t => t.roles.includes(currentRole));
-
-                return navTabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  const isAdminTab = tab.id === 'adminpanel';
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className="relative px-3 py-1.5 rounded-[10px] text-xs font-semibold whitespace-nowrap shrink-0 select-none cursor-pointer transition-all duration-150"
-                      style={
-                        isActive
-                          ? {
-                              background: isAdminTab
-                                ? 'linear-gradient(145deg,rgba(124,58,237,0.18),rgba(139,92,246,0.10))'
-                                : 'linear-gradient(145deg,rgba(5,150,105,0.18),rgba(13,148,136,0.10))',
-                              color: isAdminTab ? '#6d28d9' : '#065f46',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.8) inset',
-                              border: `1px solid ${isAdminTab ? 'rgba(124,58,237,0.18)' : 'rgba(5,150,105,0.18)'}`,
-                              fontWeight: 700,
-                            }
-                          : {
-                              color: '#475569',
-                              background: 'transparent',
-                              border: '1px solid transparent',
-                            }
+              {navTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const isAdminTab = tab.id === 'adminpanel';
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className="relative px-3 py-1.5 rounded-[10px] text-xs font-semibold whitespace-nowrap shrink-0 select-none cursor-pointer transition-all duration-150"
+                    style={
+                      isActive
+                        ? {
+                            background: isAdminTab
+                              ? 'linear-gradient(145deg,rgba(124,58,237,0.18),rgba(139,92,246,0.10))'
+                              : 'linear-gradient(145deg,rgba(5,150,105,0.18),rgba(13,148,136,0.10))',
+                            color: isAdminTab ? '#6d28d9' : '#065f46',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.8) inset',
+                            border: `1px solid ${isAdminTab ? 'rgba(124,58,237,0.18)' : 'rgba(5,150,105,0.18)'}`,
+                            fontWeight: 700,
+                          }
+                        : {
+                            color: '#475569',
+                            background: 'transparent',
+                            border: '1px solid transparent',
+                          }
+                    }
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.5)';
+                        e.currentTarget.style.color = '#0f172a';
+                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
                       }
-                      onMouseEnter={e => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = 'rgba(255,255,255,0.5)';
-                          e.currentTarget.style.color = '#0f172a';
-                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = '#475569';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }
-                      }}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                });
-              })()}
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#475569';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </nav>
 
             {/* ── USER CONTROL ─────────────────────────────── */}
@@ -1086,7 +1097,25 @@ export default function App() {
         </div>
       </header>
 
-
+      {/* Mobile Horizontal Navigation Pills */}
+      <div className="md:hidden px-4 py-2.5 overflow-x-auto scrollbar-none flex items-center gap-1.5 bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-16 z-30 shadow-2xs">
+        {navTabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition cursor-pointer ${
+                isActive
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 bg-slate-100 hover:bg-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* MAIN WORKSPACE */}
       <main className="flex-1 px-6 py-8 lg:px-8 lg:py-10 max-w-7xl w-full mx-auto space-y-8 lg:space-y-10">
@@ -1094,6 +1123,32 @@ export default function App() {
         {/* VIEW 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
+
+            {/* FARMER GET STARTED BANNER IF 0 FIELDS */}
+            {user?.role !== 'admin' && farms.length === 0 && (
+              <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-300/80 p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                <div className="flex items-center space-x-3.5">
+                  <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-sm shrink-0">
+                    <Tractor className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Register Your First Field Parcel</h4>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Add your land size, soil type, and irrigation system to unlock hyper-localized AI crop yield predictions and fertilizer plans.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddFarmModal(true)}
+                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Add Field Now</span>
+                </button>
+              </div>
+            )}
+
             {/* Top Stat Cards — Dynamic by Role */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {user?.role === 'admin' ? (
@@ -1115,9 +1170,16 @@ export default function App() {
                   </div>
 
                   {/* ADMIN CARD 3: Registered Fields */}
-                  <div className="bg-white border border-slate-200/80 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered Fields</p>
-                    <h3 className="text-3xl font-black text-blue-600 mt-3 mb-1">{farms.length || 1}</h3>
+                  <div 
+                    onClick={() => setActiveTab('farms')}
+                    className="bg-white border border-slate-200/80 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group hover:border-emerald-300"
+                    title="Click to view all fields"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered Fields</p>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">View All →</span>
+                    </div>
+                    <h3 className="text-3xl font-black text-blue-600 mt-3 mb-1 group-hover:text-emerald-700 transition">{farms.length}</h3>
                     <p className="text-xs text-slate-500">Platform Land Parcels</p>
                   </div>
 
@@ -1142,10 +1204,27 @@ export default function App() {
                   </div>
 
                   {/* FARMER CARD 2: Active Fields */}
-                  <div className="bg-white border border-slate-200/80 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Fields</p>
-                    <h3 className="text-3xl font-black text-blue-600 mt-3 mb-1">{farms.length || 1}</h3>
-                    <p className="text-xs text-slate-500">Registered Land Parcels</p>
+                  <div 
+                    onClick={() => setActiveTab('farms')}
+                    className="bg-white border border-slate-200/80 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group hover:border-emerald-300"
+                    title="Click to view and manage your fields"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Fields</p>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowAddFarmModal(true); }}
+                        className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-lg flex items-center gap-0.5 transition cursor-pointer"
+                        title="Add a new field parcel"
+                      >
+                        <Plus className="w-3 h-3" /> Add Field
+                      </button>
+                    </div>
+                    <h3 className="text-3xl font-black text-blue-600 mt-3 mb-1 group-hover:text-emerald-700 transition">{farms.length}</h3>
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>{farms.length === 1 ? '1 Registered Field' : `${farms.length} Registered Land Parcels`}</span>
+                      <span className="text-emerald-600 font-bold text-[11px] group-hover:underline">Manage Fields →</span>
+                    </div>
                   </div>
 
                   {/* FARMER CARD 3: Logged Forecasts */}
@@ -1997,96 +2076,118 @@ export default function App() {
               <FarmParcelsDistributionChart farms={farms} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {farms.map((farm) => (
-                <div key={farm.id} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <h3 className="font-bold text-emerald-700 text-base flex items-center">
-                        <Tractor className="w-4 h-4 mr-2 text-emerald-600" /> {farm.farm_name}
-                      </h3>
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => {
-                            const allocations = farm.crop_allocations && farm.crop_allocations.length > 0
-                              ? farm.crop_allocations
-                              : (farm.primary_crops || ['Wheat']).map(c => ({
-                                  crop: c,
-                                  area_hectares: Math.round(((parseFloat(farm.area_hectares) || 10) / (farm.primary_crops?.length || 1)) * 10) / 10
-                                }));
+            {farms.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {farms.map((farm) => (
+                  <div key={farm.id} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 className="font-bold text-emerald-700 text-base flex items-center">
+                          <Tractor className="w-4 h-4 mr-2 text-emerald-600" /> {farm.farm_name}
+                        </h3>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => {
+                              const allocations = farm.crop_allocations && farm.crop_allocations.length > 0
+                                ? farm.crop_allocations
+                                : (farm.primary_crops || ['Wheat']).map(c => ({
+                                    crop: c,
+                                    area_hectares: Math.round(((parseFloat(farm.area_hectares) || 10) / (farm.primary_crops?.length || 1)) * 10) / 10
+                                  }));
 
-                            setEditFarm({
-                              id: farm.id,
-                              farm_name: farm.farm_name,
-                              region: farm.region,
-                              area_hectares: farm.area_hectares,
-                              soil_type: farm.soil_type,
-                              irrigation_type: farm.irrigation_type,
-                              crop_allocations: allocations,
-                              primary_crops: farm.primary_crops || []
-                            });
-                            setShowEditFarmModal(true);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                          title="Edit Field Details"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteFarm(farm.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title="Delete Field Parcel"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                              setEditFarm({
+                                id: farm.id,
+                                farm_name: farm.farm_name,
+                                region: farm.region,
+                                area_hectares: farm.area_hectares,
+                                soil_type: farm.soil_type,
+                                irrigation_type: farm.irrigation_type,
+                                crop_allocations: allocations,
+                                primary_crops: farm.primary_crops || []
+                              });
+                              setShowEditFarmModal(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                            title="Edit Field Details"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFarm(farm.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            title="Delete Field Parcel"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2 font-medium">{farm.region}</p>
+                      <p className="text-xs text-slate-500 mt-2 font-medium">{farm.region}</p>
 
-                    <div className="mt-4 space-y-2 text-xs text-slate-700">
-                      <div className="flex justify-between py-1 border-b border-slate-100">
-                        <span className="text-slate-500">Total Area:</span>
-                        <span className="font-mono font-bold text-slate-900">{farm.area_hectares} Hectares</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-slate-100">
-                        <span className="text-slate-500">Soil Texture:</span>
-                        <span className="font-medium">{farm.soil_type}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-slate-100">
-                        <span className="text-slate-500">Irrigation:</span>
-                        <span className="font-medium">{farm.irrigation_type}</span>
-                      </div>
-                      <div className="py-1">
-                        <span className="text-slate-500 block mb-1">Crops & Hectare Allocations:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {farm.crop_allocations && farm.crop_allocations.length > 0 ? (
-                            farm.crop_allocations.map((alloc, i) => (
-                              <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] border border-emerald-200 font-semibold flex items-center gap-1">
-                                <span>{alloc.crop}</span>
-                                <span className="font-mono font-bold text-emerald-700 bg-emerald-100/70 px-1 rounded">{alloc.area_hectares} ha</span>
-                              </span>
-                            ))
-                          ) : (
-                            farm.primary_crops?.map((c, i) => (
-                              <span key={i} className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] border border-emerald-200 font-semibold">
-                                {c}
-                              </span>
-                            ))
-                          )}
+                      <div className="mt-4 space-y-2 text-xs text-slate-700">
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Total Area:</span>
+                          <span className="font-mono font-bold text-slate-900">{farm.area_hectares} Hectares</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Soil Texture:</span>
+                          <span className="font-medium">{farm.soil_type}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Irrigation:</span>
+                          <span className="font-medium">{farm.irrigation_type}</span>
+                        </div>
+                        <div className="py-1">
+                          <span className="text-slate-500 block mb-1">Crops & Hectare Allocations:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {farm.crop_allocations && farm.crop_allocations.length > 0 ? (
+                              farm.crop_allocations.map((alloc, i) => (
+                                <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] border border-emerald-200 font-semibold flex items-center gap-1">
+                                  <span>{alloc.crop}</span>
+                                  <span className="font-mono font-bold text-emerald-700 bg-emerald-100/70 px-1 rounded">{alloc.area_hectares} ha</span>
+                                </span>
+                              ))
+                            ) : (
+                              farm.primary_crops?.map((c, i) => (
+                                <span key={i} className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] border border-emerald-200 font-semibold">
+                                  {c}
+                                </span>
+                              ))
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <button
-                    onClick={() => { setPredForm({ ...predForm, region: farm.region, soil_type: farm.soil_type, irrigation_type: farm.irrigation_type, area_hectares: farm.area_hectares }); setActiveTab('forecast'); }}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-emerald-800 text-xs font-bold py-2 rounded-xl transition border border-slate-200"
-                  >
-                    Run Forecast for this Field
-                  </button>
+                    <button
+                      onClick={() => { setPredForm({ ...predForm, region: farm.region, soil_type: farm.soil_type, irrigation_type: farm.irrigation_type, area_hectares: farm.area_hectares }); setActiveTab('forecast'); }}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-emerald-800 text-xs font-bold py-2 rounded-xl transition border border-slate-200"
+                    >
+                      Run Forecast for this Field
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white border-2 border-dashed border-emerald-200 rounded-3xl p-10 text-center space-y-4 max-w-xl mx-auto shadow-sm">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                  <Tractor className="w-8 h-8" />
                 </div>
-              ))}
-            </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-slate-900">No Farm Fields Registered Yet</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    You have not registered any field parcels yet. Add your land area, soil texture, irrigation system, and crop allocations to get hyper-personalized yield predictions and soil insights.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddFarmModal(true)}
+                  className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Register Your First Field</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
