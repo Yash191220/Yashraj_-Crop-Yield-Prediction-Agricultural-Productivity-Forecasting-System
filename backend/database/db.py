@@ -1,4 +1,5 @@
 import os
+import certifi
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -29,13 +30,19 @@ class Database:
 
         for uri in uris_to_try:
             try:
-                client = MongoClient(
-                    uri,
-                    serverSelectionTimeoutMS=2500,
-                    connectTimeoutMS=2500,
-                    socketTimeoutMS=2500,
-                    retryWrites=True
-                )
+                client_kwargs = {
+                    "serverSelectionTimeoutMS": 8000,
+                    "connectTimeoutMS": 8000,
+                    "socketTimeoutMS": 8000,
+                    "retryWrites": True
+                }
+                if "mongodb.net" in uri or "ssl=true" in uri.lower():
+                    try:
+                        client_kwargs["tlsCAFile"] = certifi.where()
+                    except Exception:
+                        pass
+
+                client = MongoClient(uri, **client_kwargs)
                 client.admin.command('ping')
                 cls._client = client
                 cls._db = client[DATABASE_NAME]

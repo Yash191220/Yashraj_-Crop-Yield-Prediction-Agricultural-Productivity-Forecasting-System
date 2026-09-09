@@ -90,8 +90,6 @@ def require_roles(allowed_roles: list[str]):
 @router.post("/register", response_model=TokenResponse)
 def register_user(user: UserRegister):
     db = get_database()
-    if db is None:
-        raise HTTPException(status_code=500, detail="MongoDB Atlas Database connection unavailable")
 
     # ── Admin Registration Guard ───────────────────────────────────────────────
     if user.role == "admin":
@@ -106,7 +104,13 @@ def register_user(user: UserRegister):
                 detail="Invalid admin secret key. Access denied."
             )
 
-    existing = db.users.find_one({"email": user.email})
+    existing = None
+    if db is not None:
+        try:
+            existing = db.users.find_one({"email": user.email})
+        except Exception as e:
+            print(f"⚠️ MongoDB check warning: {e}")
+
     if existing or user.email in USER_DB:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -235,11 +239,15 @@ def get_me(current_user: dict = Depends(get_current_user)):
 @router.post("/google", response_model=TokenResponse)
 def google_auth(request: GoogleAuthRequest):
     db = get_database()
-    if db is None:
-        raise HTTPException(status_code=500, detail="MongoDB Atlas Database connection unavailable")
-
     user_role = request.role if request.role in ["farmer", "admin"] else "farmer"
-    user_record = db.users.find_one({"email": request.email})
+    user_record = None
+    if db is not None:
+        try:
+            user_record = db.users.find_one({"email": request.email})
+        except Exception as e:
+            print(f"⚠️ MongoDB google auth check warning: {e}")
+    if not user_record and request.email in USER_DB:
+        user_record = USER_DB[request.email]
 
     if not user_record:
         # New Google user — set pending for farmers, active for admins

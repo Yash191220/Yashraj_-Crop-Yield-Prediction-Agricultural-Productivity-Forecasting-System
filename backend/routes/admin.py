@@ -9,29 +9,31 @@ router = APIRouter(prefix="/api/admin", tags=["Admin Approvals"])
 # ─── GET: All Pending Users ────────────────────────────────────────────────────
 @router.get("/pending-users")
 def get_pending_users(current_user: dict = Depends(require_roles(["admin"]))):
-    """Admin only: Get all users with status=pending"""
+    """Admin only: Get all users with status=pending or unapproved"""
     db = get_database()
     pending = []
 
     if db is not None:
         try:
-            results = list(db.users.find({"status": "pending"}, {"_id": 0, "password_hash": 0}))
+            results = list(db.users.find(
+                {"$or": [{"status": "pending"}, {"status": None, "role": {"$in": ["farmer", "advisor", "agronomist"]}}]},
+                {"_id": 0, "password_hash": 0}
+            ))
             pending = results
         except Exception as e:
             print(f"MongoDB read notice: {e}")
 
-    # Fallback: in-memory
-    if not pending:
-        pending = [
-            {k: v for k, v in u.items() if k != "password_hash"}
-            for u in USER_DB.values()
-            if u.get("status") == "pending"
-        ]
+    # Also merge in-memory pending users
+    for u in USER_DB.values():
+        if u.get("status") == "pending":
+            if not any(p.get("email") == u.get("email") for p in pending):
+                clean_u = {k: v for k, v in u.items() if k != "password_hash"}
+                pending.append(clean_u)
 
-    # Exclude any automated test or demo emails
+    # Exclude internal automated test emails only
     pending = [
         u for u in pending
-        if not any(x in u.get("email", "").lower() for x in ["postman", "test@", "demo@"])
+        if not ("postman" in u.get("email", "").lower())
     ]
 
     # Serialize datetime fields
@@ -166,21 +168,21 @@ def approve_user(user_id: str, current_user: dict = Depends(require_roles(["admi
     if db is not None:
         try:
             result = db.users.find_one_and_update(
-                {"id": user_id, "status": "pending"},
+                {"id": user_id},
                 {"$set": {"status": "active", "approved_by": current_user["email"], "approved_at": datetime.utcnow()}},
                 return_document=True
             )
             if result:
-                return {"success": True, "message": f"User {result['name']} approved successfully.", "user_id": user_id}
+                return {"success": True, "message": f"User {result.get('name', 'User')} approved successfully.", "user_id": user_id}
         except Exception as e:
             print(f"MongoDB update notice: {e}")
 
     # Fallback: in-memory
     for email, user in USER_DB.items():
-        if user.get("id") == user_id and user.get("status") == "pending":
+        if user.get("id") == user_id:
             USER_DB[email]["status"] = "active"
             USER_DB[email]["approved_by"] = current_user["email"]
-            return {"success": True, "message": f"User {user['name']} approved successfully.", "user_id": user_id}
+            return {"success": True, "message": f"User {user.get('name', 'User')} approved successfully.", "user_id": user_id}
 
     raise HTTPException(status_code=404, detail="Pending user not found.")
 
@@ -194,20 +196,20 @@ def reject_user(user_id: str, current_user: dict = Depends(require_roles(["admin
     if db is not None:
         try:
             result = db.users.find_one_and_update(
-                {"id": user_id, "status": "pending"},
+                {"id": user_id},
                 {"$set": {"status": "rejected", "rejected_by": current_user["email"], "rejected_at": datetime.utcnow()}},
                 return_document=True
             )
             if result:
-                return {"success": True, "message": f"User {result['name']} rejected.", "user_id": user_id}
+                return {"success": True, "message": f"User {result.get('name', 'User')} rejected.", "user_id": user_id}
         except Exception as e:
             print(f"MongoDB update notice: {e}")
 
     # Fallback: in-memory
     for email, user in USER_DB.items():
-        if user.get("id") == user_id and user.get("status") == "pending":
+        if user.get("id") == user_id:
             USER_DB[email]["status"] = "rejected"
-            return {"success": True, "message": f"User {user['name']} rejected.", "user_id": user_id}
+            return {"success": True, "message": f"User {user.get('name', 'User')} rejected.", "user_id": user_id}
 
     raise HTTPException(status_code=404, detail="Pending user not found.")
 

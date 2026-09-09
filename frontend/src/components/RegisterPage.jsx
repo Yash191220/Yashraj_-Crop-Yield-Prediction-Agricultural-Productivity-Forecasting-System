@@ -69,7 +69,7 @@ export default function RegisterPage({ onLoginSuccess, onGoToLogin }) {
       } else if (detail?.toLowerCase().includes('already registered')) {
         setError('This email is already registered. If your account is awaiting admin approval, please wait or sign in.');
       } else {
-        setSuccess('Registration submitted! Your account is pending Admin approval.');
+        setError(detail || 'Registration failed. Please try again.');
       }
     } finally {
       setLoading(false);
