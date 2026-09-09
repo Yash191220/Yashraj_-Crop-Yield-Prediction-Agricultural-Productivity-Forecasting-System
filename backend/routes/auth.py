@@ -239,7 +239,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
 @router.post("/google", response_model=TokenResponse)
 def google_auth(request: GoogleAuthRequest):
     db = get_database()
-    user_role = request.role if request.role in ["farmer", "admin"] else "farmer"
+    user_role = request.role if request.role in ["farmer", "admin", "advisor", "agronomist"] else "farmer"
     user_record = None
     if db is not None:
         try:
@@ -250,7 +250,7 @@ def google_auth(request: GoogleAuthRequest):
         user_record = USER_DB[request.email]
 
     if not user_record:
-        # New Google user — set pending for farmers, active for admins
+        # New Google user — set pending for farmers & advisors, active for admins
         user_record = {
             "id": f"usr_g_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
             "name": request.name,
@@ -264,24 +264,30 @@ def google_auth(request: GoogleAuthRequest):
             "status": "active" if user_role == "admin" else "pending",
             "created_at": datetime.utcnow()
         }
-        try:
-            db.users.insert_one(user_record.copy())
-            print(f"✅ Google User {request.email} saved to MongoDB Atlas yieldsense_ai.users collection.")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save Google user to MongoDB Atlas: {str(e)}")
+        if db is not None:
+            try:
+                db.users.insert_one(user_record.copy())
+                print(f"✅ Google User {request.email} saved to MongoDB Atlas yieldsense_ai.users collection.")
+            except Exception as e:
+                print(f"⚠️ Warning saving to MongoDB: {e}")
         USER_DB[request.email] = user_record
     else:
         # ❌ ROLE LOCK: block if email already registered under a different role
         stored_role = user_record.get("role", "farmer")
         if stored_role != user_role:
-            role_label = "Admin" if stored_role == "admin" else "Farmer"
-            opposite = "Farmer" if stored_role == "admin" else "Admin"
+            role_labels = {"admin": "Admin", "advisor": "Advisor", "farmer": "Farmer", "agronomist": "Agronomist"}
+            role_label = role_labels.get(stored_role, stored_role.capitalize())
+            opposite = role_labels.get(user_role, user_role.capitalize())
             raise HTTPException(
                 status_code=403,
                 detail=f"🔒 This Google account is already registered as {role_label}. You cannot sign in as {opposite} with the same Google account. Please use a different Google account or sign in as {role_label}."
             )
         if user_role == "admin":
-            db.users.update_one({"email": request.email}, {"$set": {"role": "admin", "status": "active"}})
+            if db is not None:
+                try:
+                    db.users.update_one({"email": request.email}, {"$set": {"role": "admin", "status": "active"}})
+                except Exception as e:
+                    print(f"⚠️ Warning updating admin in MongoDB: {e}")
             user_record["role"] = "admin"
             user_record["status"] = "active"
 
