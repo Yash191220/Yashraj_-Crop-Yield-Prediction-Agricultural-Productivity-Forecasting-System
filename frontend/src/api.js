@@ -41,12 +41,22 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // Auth APIs
+export const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem('yieldsense_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const loginUser = async (credentials) => {
   const response = await apiClient.post('/auth/login', credentials);
   if (response.data.access_token) {
     localStorage.setItem('access_token', response.data.access_token);
     setCookie('access_token', response.data.access_token);
     if (response.data.user) {
+      localStorage.setItem('yieldsense_user', JSON.stringify(response.data.user));
       setCookie('user_role', response.data.user.role);
       setCookie('user_email', response.data.user.email);
     }
@@ -60,6 +70,7 @@ export const registerUser = async (userData) => {
     localStorage.setItem('access_token', response.data.access_token);
     setCookie('access_token', response.data.access_token);
     if (response.data.user) {
+      localStorage.setItem('yieldsense_user', JSON.stringify(response.data.user));
       setCookie('user_role', response.data.user.role);
       setCookie('user_email', response.data.user.email);
     }
@@ -73,6 +84,7 @@ export const loginWithGoogle = async (googleData) => {
     localStorage.setItem('access_token', response.data.access_token);
     setCookie('access_token', response.data.access_token);
     if (response.data.user) {
+      localStorage.setItem('yieldsense_user', JSON.stringify(response.data.user));
       setCookie('user_role', response.data.user.role);
       setCookie('user_email', response.data.user.email);
     }
@@ -87,6 +99,8 @@ export const getCurrentUserProfile = async () => {
 
 export const logoutUser = () => {
   localStorage.removeItem('access_token');
+  localStorage.removeItem('yieldsense_user');
+  localStorage.removeItem('yieldsense_active_tab');
   deleteCookie('access_token');
   deleteCookie('user_role');
   deleteCookie('user_email');

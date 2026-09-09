@@ -52,12 +52,26 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         # Check MongoDB first
         db = get_database()
         if db is not None:
-            db_user = db.users.find_one({"email": email})
-            if db_user:
-                return db_user
+            try:
+                db_user = db.users.find_one({"email": email})
+                if db_user:
+                    return db_user
+            except Exception as db_err:
+                print(f"⚠️ MongoDB query warning in get_current_user: {db_err}")
                 
         if email in USER_DB:
             return USER_DB[email]
+            
+        # Resilient fallback: reconstruct user profile from verified cryptographically signed JWT payload
+        if payload.get("sub"):
+            return {
+                "id": payload.get("id", f"usr_{abs(hash(email)) % 100000}"),
+                "name": payload.get("name", email.split("@")[0].title()),
+                "email": email,
+                "role": payload.get("role", "farmer"),
+                "region": payload.get("region", "National"),
+                "created_at": payload.get("created_at", datetime.utcnow().isoformat())
+            }
             
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     except jwt.PyJWTError:
@@ -129,7 +143,14 @@ def register_user(user: UserRegister):
             detail="Registration submitted successfully! Your account is pending admin approval. You will be able to log in once approved by the administrator."
         )
 
-    token = create_access_token({"sub": user.email, "role": user_record["role"]})
+    token = create_access_token({
+        "sub": user.email,
+        "id": user_record["id"],
+        "name": user_record["name"],
+        "role": user_record["role"],
+        "region": user_record["region"],
+        "created_at": str(user_record["created_at"])
+    })
     user_resp = UserResponse(
         id=user_record["id"],
         name=user_record["name"],
@@ -182,7 +203,14 @@ def login_user(credentials: UserLogin):
             detail="❌ Your registration has been rejected by the administrator. Contact support for more information."
         )
 
-    token = create_access_token({"sub": user["email"], "role": user["role"]})
+    token = create_access_token({
+        "sub": user["email"],
+        "id": user["id"],
+        "name": user["name"],
+        "role": user["role"],
+        "region": user["region"],
+        "created_at": str(user["created_at"])
+    })
     user_resp = UserResponse(
         id=user["id"],
         name=user["name"],
@@ -262,7 +290,14 @@ def google_auth(request: GoogleAuthRequest):
             detail="❌ Your Google account registration has been rejected by the administrator."
         )
 
-    token = create_access_token({"sub": user_record["email"], "role": user_record["role"]})
+    token = create_access_token({
+        "sub": user_record["email"],
+        "id": user_record["id"],
+        "name": user_record["name"],
+        "role": user_record["role"],
+        "region": user_record.get("region", "North Region"),
+        "created_at": str(user_record.get("created_at", datetime.utcnow()))
+    })
     user_resp = UserResponse(
         id=user_record["id"],
         name=user_record["name"],
@@ -395,6 +430,13 @@ async def google_callback(code: str = None, state: str = "farmer", error: str = 
         return RedirectResponse("http://127.0.0.1:5173?google_error=account_rejected")
 
     # Create JWT and redirect frontend with token
-    token = create_access_token({"sub": user_record["email"], "role": user_record["role"]})
+    token = create_access_token({
+        "sub": user_record["email"],
+        "id": user_record["id"],
+        "name": user_record["name"],
+        "role": user_record["role"],
+        "region": user_record.get("region", "North Region"),
+        "created_at": str(user_record.get("created_at", datetime.utcnow()))
+    })
     redirect_url = f"http://127.0.0.1:5173?google_token={token}&google_email={urllib.parse.quote(google_email)}&google_name={urllib.parse.quote(google_name)}&google_role={user_record['role']}"
     return RedirectResponse(redirect_url)

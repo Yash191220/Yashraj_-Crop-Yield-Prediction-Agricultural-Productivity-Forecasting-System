@@ -53,6 +53,7 @@ import {
   Radar
 } from 'recharts';
 import {
+  getStoredUser,
   loginUser,
   registerUser,
   loginWithGoogle,
@@ -209,9 +210,22 @@ const DEFAULT_INITIAL_LOGS = [
   }
 ];
 
+const getRoleRedirectTab = (role) => {
+  if (role === 'admin') return 'adminpanel';
+  if (role === 'advisor' || role === 'agronomist') return 'advisorhub';
+  return 'dashboard';
+};
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('login');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => getStoredUser());
+  const [activeTab, setActiveTab] = useState(() => {
+    const storedUser = getStoredUser();
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || (document.cookie.includes('access_token'))) : null;
+    if (!storedUser || !token) return 'login';
+    const savedTab = typeof window !== 'undefined' ? localStorage.getItem('yieldsense_active_tab') : null;
+    if (savedTab && savedTab !== 'login') return savedTab;
+    return getRoleRedirectTab(storedUser.role);
+  });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -397,30 +411,43 @@ export default function App() {
   });
   const [recResult, setRecResult] = useState(null);
 
-  // Note: useEffect hooks are placed after function declarations to avoid 'used before declared' errors
-
-  const getRoleRedirectTab = (role) => {
-    if (role === 'admin') return 'adminpanel';
-    if (role === 'advisor' || role === 'agronomist') return 'advisorhub';
-    return 'dashboard';
-  };
+  // Persist active tab selection to localStorage
+  useEffect(() => {
+    if (user && activeTab && activeTab !== 'login') {
+      localStorage.setItem('yieldsense_active_tab', activeTab);
+    }
+  }, [activeTab, user]);
 
   const fetchProfile = async () => {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || document.cookie.includes('access_token')) : null;
+    if (!token) {
+      setUser(null);
+      setActiveTab('login');
+      return;
+    }
     try {
       const data = await getCurrentUserProfile();
       if (data && data.email) {
         setUser(data);
-        setActiveTab(getRoleRedirectTab(data.role));
+        localStorage.setItem('yieldsense_user', JSON.stringify(data));
+        setActiveTab((prev) => {
+          if (prev === 'login') {
+            const savedTab = localStorage.getItem('yieldsense_active_tab');
+            return savedTab && savedTab !== 'login' ? savedTab : getRoleRedirectTab(data.role);
+          }
+          return prev;
+        });
         if (data.role === 'admin') {
           fetchPendingUsers();
         }
       } else {
-        setUser(null);
-        setActiveTab('login');
+        handleLogout();
       }
-    } catch {
-      setUser(null);
-      setActiveTab('login');
+    } catch (err) {
+      console.warn('Backend profile verification notice:', err?.message || err);
+      if (err.response?.status === 401) {
+        handleLogout();
+      }
     }
   };
 
@@ -844,7 +871,10 @@ export default function App() {
         onLoginSuccess={(loggedInUser) => {
           setPendingGoogleAdmin(null);
           setUser(loggedInUser);
-          setActiveTab(getRoleRedirectTab(loggedInUser.role));
+          localStorage.setItem('yieldsense_user', JSON.stringify(loggedInUser));
+          const targetTab = getRoleRedirectTab(loggedInUser.role);
+          setActiveTab(targetTab);
+          localStorage.setItem('yieldsense_active_tab', targetTab);
           fetchHistory();
           fetchFarmList();
           if (loggedInUser.role === 'admin') fetchPendingUsers();
