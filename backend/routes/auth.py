@@ -354,9 +354,9 @@ def get_google_auth_url(role: str = "farmer"):
 async def google_callback(code: str = None, state: str = "farmer", error: str = None):
     """Google sends the user back here after they choose their account and allow access."""
     if error:
-        return RedirectResponse(f"http://127.0.0.1:5173?google_error={error}")
+        return RedirectResponse(f"{FRONTEND_URL}?google_error={error}")
     if not code:
-        return RedirectResponse("http://127.0.0.1:5173?google_error=no_code")
+        return RedirectResponse(f"{FRONTEND_URL}?google_error=no_code")
 
     # Exchange auth code for tokens
     async with httpx.AsyncClient() as client:
@@ -372,7 +372,7 @@ async def google_callback(code: str = None, state: str = "farmer", error: str = 
         )
 
     if token_resp.status_code != 200:
-        return RedirectResponse("http://127.0.0.1:5173?google_error=token_exchange_failed")
+        return RedirectResponse(f"{FRONTEND_URL}?google_error=token_exchange_failed")
 
     token_data = token_resp.json()
     id_token = token_data.get("id_token", "")
@@ -388,12 +388,12 @@ async def google_callback(code: str = None, state: str = "farmer", error: str = 
         google_sub = payload.get("sub", "")
         google_picture = payload.get("picture", "")
     except Exception:
-        return RedirectResponse("http://127.0.0.1:5173?google_error=invalid_id_token")
+        return RedirectResponse(f"{FRONTEND_URL}?google_error=invalid_id_token")
 
     # Save or find user in MongoDB Atlas
     db = get_database()
     if db is None:
-        return RedirectResponse("http://127.0.0.1:5173?google_error=db_unavailable")
+        return RedirectResponse(f"{FRONTEND_URL}?google_error=db_unavailable")
 
     user_role = state if state in ["farmer", "admin"] else "farmer"
     user_record = db.users.find_one({"email": google_email})
@@ -426,7 +426,7 @@ async def google_callback(code: str = None, state: str = "farmer", error: str = 
                 f"role_locked:{stored_role}:This Google account is already registered as {role_label}. "
                 f"You cannot sign in as {opposite} with the same Google account."
             )
-            return RedirectResponse(f"http://127.0.0.1:5173?google_error={error_msg}")
+            return RedirectResponse(f"{FRONTEND_URL}?google_error={error_msg}")
         if user_role == "admin":
             # Upgrade account to admin role & active status
             db.users.update_one({"email": google_email}, {"$set": {"role": "admin", "status": "active"}})
