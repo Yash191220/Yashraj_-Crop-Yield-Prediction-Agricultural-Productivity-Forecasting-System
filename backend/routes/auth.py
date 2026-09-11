@@ -18,6 +18,7 @@ ALGORITHM = "HS256"
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://yieldsense-frontend.onrender.com")
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "ADMIN@YIELDSENSE2024")
 
 def hash_pwd(password: str) -> str:
@@ -437,13 +438,13 @@ async def google_callback(code: str = None, state: str = "farmer", error: str = 
     if user_status == "pending":
         # Redirect to frontend with pending flag instead of token
         redirect_url = (
-            f"http://127.0.0.1:5173?google_pending=true"
+            f"{FRONTEND_URL}?google_pending=true"
             f"&google_name={urllib.parse.quote(google_name)}"
             f"&google_email={urllib.parse.quote(google_email)}"
         )
         return RedirectResponse(redirect_url)
     if user_status == "rejected":
-        return RedirectResponse("http://127.0.0.1:5173?google_error=account_rejected")
+        return RedirectResponse(f"{FRONTEND_URL}?google_error=account_rejected")
 
     # Create JWT and redirect frontend with token
     token = create_access_token({
@@ -454,5 +455,5 @@ async def google_callback(code: str = None, state: str = "farmer", error: str = 
         "region": user_record.get("region", "North Region"),
         "created_at": str(user_record.get("created_at", datetime.utcnow()))
     })
-    redirect_url = f"http://127.0.0.1:5173?google_token={token}&google_email={urllib.parse.quote(google_email)}&google_name={urllib.parse.quote(google_name)}&google_role={user_record['role']}"
+    redirect_url = f"{FRONTEND_URL}?google_token={token}&google_email={urllib.parse.quote(google_email)}&google_name={urllib.parse.quote(google_name)}&google_role={user_record['role']}"
     return RedirectResponse(redirect_url)

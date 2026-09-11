@@ -3,6 +3,8 @@ import { loginUser, loginWithGoogle } from '../api';
 import RegisterPage from './RegisterPage';
 
 const ADMIN_SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY || 'ADMIN@YIELDSENSE2024';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace('/api', '');
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '937316566103-59d2qauoe0m8usnhgouk59lfa49ikll4.apps.googleusercontent.com';
 
 export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoogleAdmin, onClearPendingGoogleAdmin }) {
   const [selectedRole, setSelectedRole] = useState('farmer');
@@ -85,7 +87,7 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
     if (window.google && window.google.accounts && window.google.accounts.id) {
       try {
         window.google.accounts.id.initialize({
-          client_id: '717140131417-client.apps.googleusercontent.com',
+          client_id: GOOGLE_CLIENT_ID,
           callback: handleGoogleCredentialResponse
         });
       } catch (err) {
@@ -130,7 +132,7 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
 
     try {
       const resp = await fetch(
-        `http://localhost:8000/api/auth/google/url?role=${selectedRole}`
+        `${API_BASE}/api/auth/google/url?role=${selectedRole}`
       );
       if (!resp.ok) {
         throw new Error('Backend Google OAuth endpoint unavailable');
@@ -161,13 +163,11 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
           }
         }, 500);
       } else {
-        setGoogleCustomEmail('');
-        setShowGoogleModal(true);
+        setError('Popup was blocked by your browser. Please allow popups for this site and try again.');
       }
     } catch (err) {
       if (popup && !popup.closed) popup.close();
-      setGoogleCustomEmail('');
-      setShowGoogleModal(true);
+      setError('Google Sign-In is not available right now. Please use email/password or try again later.');
     } finally {
       setLoading(false);
     }
