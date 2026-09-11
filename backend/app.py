@@ -1,5 +1,6 @@
 import sys
 import os
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,11 +12,29 @@ if backend_dir not in sys.path:
 load_dotenv(os.path.join(backend_dir, ".env"))
 
 from routes import auth, user, prediction, weather, soil, recommendation, farm, admin, reports, risk, advisor
+from database.db import get_database
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ✅ Startup: eagerly connect to MongoDB so it's ready for OAuth callbacks
+    print("🚀 Backend starting up — connecting to MongoDB...")
+    try:
+        db = get_database()
+        if db is not None:
+            print("✅ MongoDB connected on startup — ready for requests.")
+        else:
+            print("⚠️ MongoDB connection failed on startup — will retry on first request.")
+    except Exception as e:
+        print(f"⚠️ Startup DB connection error: {e}")
+    yield
+    # Shutdown
+    print("🛑 Backend shutting down.")
 
 app = FastAPI(
     title="YieldSense AI Backend API",
     description="Crop Yield Prediction & Agricultural Productivity Forecasting System API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS setup
@@ -52,7 +71,23 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "healthy", "service": "yieldsense-backend"}
+    from database.db import get_database
+    db = get_database()
+    return {
+        "status": "healthy",
+        "service": "yieldsense-backend",
+        "db": "connected" if db is not None else "disconnected"
+    }
+
+@app.get("/api/warmup")
+async def warmup():
+    """Pre-warm endpoint: frontend calls this before Google OAuth to ensure backend + DB are ready."""
+    from database.db import get_database
+    db = get_database()
+    return {
+        "status": "ready" if db is not None else "warming_up",
+        "db": "connected" if db is not None else "connecting"
+    }
 
 if __name__ == "__main__":
     import uvicorn

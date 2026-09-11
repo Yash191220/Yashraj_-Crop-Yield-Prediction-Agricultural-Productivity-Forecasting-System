@@ -119,8 +119,10 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
             <head><title>Connecting to Google...</title></head>
             <body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: white;">
               <div style="text-align: center; padding: 20px;">
-                <h3 style="margin: 0; font-size: 16px;">Connecting to Google...</h3>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Please wait...</p>
+                <div style="width:40px;height:40px;border:3px solid #334155;border-top-color:#10b981;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
+                <h3 id="msg" style="margin: 0; font-size: 16px;">Waking up server...</h3>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">This may take up to 30 seconds on first use</p>
+                <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
               </div>
             </body>
           </html>
@@ -131,9 +133,39 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
     }
 
     try {
-      const resp = await fetch(
-        `${API_BASE}/api/auth/google/url?role=${selectedRole}`
-      );
+      // Step 1: Pre-warm the backend — poll until DB is ready (max 45s)
+      let dbReady = false;
+      const warmupStart = Date.now();
+      while (!dbReady && Date.now() - warmupStart < 45000) {
+        try {
+          const warmResp = await fetch(`${API_BASE}/api/warmup`, { signal: AbortSignal.timeout(10000) });
+          if (warmResp.ok) {
+            const warmData = await warmResp.json();
+            if (warmData.db === 'connected') {
+              dbReady = true;
+              break;
+            }
+          }
+        } catch (_) { /* still waking up */ }
+        await new Promise(r => setTimeout(r, 3000));
+      }
+
+      if (!dbReady) {
+        if (popup && !popup.closed) popup.close();
+        setError('Server is taking too long to wake up. Please try again in 30 seconds.');
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Update popup message to show connecting to Google
+      try {
+        if (popup && !popup.closed) {
+          popup.document.getElementById('msg').textContent = 'Connecting to Google...';
+        }
+      } catch (_) {}
+
+      // Step 3: Fetch the real Google OAuth URL
+      const resp = await fetch(`${API_BASE}/api/auth/google/url?role=${selectedRole}`);
       if (!resp.ok) {
         throw new Error('Backend Google OAuth endpoint unavailable');
       }
