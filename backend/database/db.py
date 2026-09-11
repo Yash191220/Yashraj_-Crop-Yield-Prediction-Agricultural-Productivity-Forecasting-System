@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-ATLAS_URI = "mongodb+srv://yashraj191220_db_user:S6fQWhT99rohAkli@cropyiled.slmdhrd.mongodb.net/yieldsense_ai?retryWrites=true&w=majority"
+ATLAS_URI = os.getenv("MONGO_URI", "mongodb+srv://yashraj191220_db_user:S6fQWhT99rohAkli@cropyiled.slmdhrd.mongodb.net/yieldsense_ai?retryWrites=true&w=majority")
 LOCAL_URI = "mongodb://localhost:27017"
 
-DATABASE_NAME = "yieldsense_ai"
+DATABASE_NAME = os.getenv("DATABASE_NAME", "yieldsense_ai")
 
 class Database:
     _client = None
@@ -26,15 +26,20 @@ class Database:
                 cls._client = None
 
         env_uri = os.getenv("MONGO_URI", ATLAS_URI)
-        uris_to_try = [ATLAS_URI, env_uri, LOCAL_URI] if "mongodb.net" in env_uri else [ATLAS_URI, LOCAL_URI]
+        # Always try Atlas first (using env var), then local as fallback
+        uris_to_try = list(dict.fromkeys([env_uri, ATLAS_URI]))
+        if "localhost" not in env_uri:
+            uris_to_try.append(LOCAL_URI)
 
         for uri in uris_to_try:
             try:
                 client_kwargs = {
-                    "serverSelectionTimeoutMS": 8000,
-                    "connectTimeoutMS": 8000,
-                    "socketTimeoutMS": 8000,
-                    "retryWrites": True
+                    # Increased timeouts to handle Render cold-start (can take 30-60s)
+                    "serverSelectionTimeoutMS": 30000,
+                    "connectTimeoutMS": 30000,
+                    "socketTimeoutMS": 30000,
+                    "retryWrites": True,
+                    "retryReads": True,
                 }
                 if "mongodb.net" in uri or "ssl=true" in uri.lower():
                     try:
