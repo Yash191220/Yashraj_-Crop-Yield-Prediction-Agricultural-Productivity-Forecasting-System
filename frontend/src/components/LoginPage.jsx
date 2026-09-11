@@ -121,8 +121,14 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
               <div style="text-align: center; padding: 20px;">
                 <div style="width:40px;height:40px;border:3px solid #334155;border-top-color:#10b981;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
                 <h3 id="msg" style="margin: 0; font-size: 16px;">Waking up server...</h3>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">This may take up to 30 seconds on first use</p>
+                <p id="sub" style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Please wait, this takes up to 60 seconds</p>
+                <p id="timer" style="font-size: 20px; font-weight:bold; color:#10b981; margin-top:10px;">60</p>
                 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+                <script>
+                  let t=60;
+                  const el=document.getElementById('timer');
+                  const iv=setInterval(()=>{t--;el.textContent=t>0?t:'';if(t<=0)clearInterval(iv);},1000);
+                </script>
               </div>
             </body>
           </html>
@@ -133,12 +139,12 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
     }
 
     try {
-      // Step 1: Pre-warm the backend — poll until DB is ready (max 45s)
+      // Step 1: Pre-warm the backend — poll until DB is ready (max 90s)
       let dbReady = false;
       const warmupStart = Date.now();
-      while (!dbReady && Date.now() - warmupStart < 45000) {
+      while (!dbReady && Date.now() - warmupStart < 90000) {
         try {
-          const warmResp = await fetch(`${API_BASE}/api/warmup`, { signal: AbortSignal.timeout(10000) });
+          const warmResp = await fetch(`${API_BASE}/api/warmup`, { signal: AbortSignal.timeout(6000) });
           if (warmResp.ok) {
             const warmData = await warmResp.json();
             if (warmData.db === 'connected') {
@@ -146,13 +152,13 @@ export default function LoginPage({ onLoginSuccess, googlePendingMsg, pendingGoo
               break;
             }
           }
-        } catch (_) { /* still waking up */ }
-        await new Promise(r => setTimeout(r, 3000));
+        } catch (_) { /* still waking up, retry */ }
+        await new Promise(r => setTimeout(r, 2000));
       }
 
       if (!dbReady) {
         if (popup && !popup.closed) popup.close();
-        setError('Server is taking too long to wake up. Please try again in 30 seconds.');
+        setError('Server is still starting up. Please wait 30 seconds and try again.');
         setLoading(false);
         return;
       }
